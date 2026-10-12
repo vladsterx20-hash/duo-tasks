@@ -23,7 +23,7 @@ export function TaskCard({ task, users, onOpen, onToggle }: Props) {
     <div className="swipe-wrap">
       <div className={'swipe-bg' + (dx !== 0 ? ' show' : '')}>{done ? '↩ Вернуть' : '✓ Выполнено'}</div>
       <div
-        className={'card' + (isOverdue(task) ? ' overdue' : '') + (done ? ' done' : '')}
+        className={'card prio-' + task.priority + (isOverdue(task) ? ' overdue' : '') + (done ? ' done' : '')}
         style={{ transform: `translateX(${dx}px)`, transition: touch.current ? 'none' : 'transform .2s' }}
         onClick={() => !moved.current && onOpen()}
         onTouchStart={(e) => {
@@ -61,7 +61,10 @@ export function TaskCard({ task, users, onOpen, onToggle }: Props) {
           <div className="card-title">{task.title}</div>
           <div className="card-meta">
             <span className="due">🕒 {fmtDue(task.due_at)}</span>
+            {task.priority === 'high' && <span className="prio-flag">🔥 Важно</span>}
+            {task.priority === 'low' && <span>⬇ Низкий</span>}
             {task.attachments.length > 0 && <span title="Есть файлы">📎 {task.attachments.length}</span>}
+            {task.comments.length > 0 && <span title="Комментарии">💬 {task.comments.length}</span>}
           </div>
         </div>
         <div className="card-people">

@@ -47,7 +47,18 @@ export async function notify(userId, html) {
 export const notifyAssigned = (userId, authorName, task) =>
   notify(
     userId,
-    `📝 <b>${esc(authorName)}</b> назначил(а) вам задачу:\n<b>${esc(task.title)}</b>\nСрок: ${fmtDate(task.due_at)}`
+    `📝 <b>${esc(authorName)}</b> назначил(а) вам задачу:\n<b>${esc(task.title)}</b>\n` +
+      (task.priority === 'high' ? '🔥 Важная\n' : '') +
+      `Срок: ${fmtDate(task.due_at)}`
+  );
+
+export const notifyDone = (userId, name, task) =>
+  notify(userId, `✅ <b>${esc(name)}</b> выполнил(а) задачу:\n<b>${esc(task.title)}</b>`);
+
+export const notifyComment = (userId, name, task, text) =>
+  notify(
+    userId,
+    `💬 <b>${esc(name)}</b> прокомментировал(а) «${esc(task.title)}»:\n${esc(text.length > 300 ? text.slice(0, 300) + '…' : text)}`
   );
 
 export const notifyReminder = (userId, task) =>

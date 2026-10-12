@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api } from '../api';
-import type { AssigneeChoice, Attachment, Task, User } from '../types';
+import { PRIORITY_LABEL } from '../types';
+import type { AssigneeChoice, Attachment, Priority, Task, User } from '../types';
 import { fmtSize, haptic, inTelegram, toLocalInput } from '../utils';
 
 const MAX = 20 * 1024 * 1024;
@@ -24,6 +25,7 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
   const [description, setDescription] = useState(task?.description ?? '');
   const [due, setDue] = useState(toLocalInput(task?.due_at ?? null));
   const [assignee, setAssignee] = useState<AssigneeChoice>(initialChoice(task, me));
+  const [priority, setPriority] = useState<Priority>(task?.priority ?? 'normal');
   const [files, setFiles] = useState<File[]>([]);
   const [existing, setExisting] = useState<Attachment[]>(task?.attachments ?? []);
   const [removed, setRemoved] = useState<number[]>([]);
@@ -58,6 +60,7 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
       fd.set('description', description);
       fd.set('due_at', due ? new Date(due).toISOString() : '');
       fd.set('assignee', assignee);
+      fd.set('priority', priority);
       files.forEach((f) => fd.append('files', f));
       let saved: Task;
       if (task) {
@@ -116,6 +119,16 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
         {choices.map(([k, name]) => (
           <button key={k} type="button" className={assignee === k ? 'active' : ''} onClick={() => setAssignee(k)}>
             {name}
+          </button>
+        ))}
+      </div>
+
+      <label>Приоритет</label>
+      <div className="segmented">
+        {(['low', 'normal', 'high'] as Priority[]).map((p) => (
+          <button key={p} type="button" className={(priority === p ? 'active ' : '') + 'p-' + p} onClick={() => setPriority(p)}>
+            {p === 'high' ? '🔥 ' : ''}
+            {PRIORITY_LABEL[p]}
           </button>
         ))}
       </div>

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import WebApp from '@twa-dev/sdk';
+import { PRIORITY_LABEL } from '../types';
 import type { Task, User } from '../types';
 import { assigneesOf, fmtDue, fmtSize, inTelegram, isOverdue, openFile } from '../utils';
 import { Avatar } from './Avatar';
@@ -6,14 +8,30 @@ import { Avatar } from './Avatar';
 interface Props {
   task: Task;
   users: User[];
+  meId: number;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
+  onComment: (text: string) => Promise<void>;
+  onDeleteComment: (id: number) => void;
 }
 
-export function TaskDetail({ task, users, onEdit, onDelete, onToggle }: Props) {
+export function TaskDetail({ task, users, meId, onEdit, onDelete, onToggle, onComment, onDeleteComment }: Props) {
   const author = users.find((u) => u.id === task.author_id);
   const done = task.status === 'done';
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  async function send() {
+    if (!text.trim() || sending) return;
+    setSending(true);
+    try {
+      await onComment(text.trim());
+      setText('');
+    } finally {
+      setSending(false);
+    }
+  }
 
   function confirmDelete() {
     if (inTelegram()) WebApp.showConfirm('Удалить задачу безвозвратно?', (ok) => ok && onDelete());
@@ -24,7 +42,12 @@ export function TaskDetail({ task, users, onEdit, onDelete, onToggle }: Props) {
     <div className="screen detail">
       <h1 className={done ? 'struck' : ''}>{task.title}</h1>
 
-      <div className={'chip' + (isOverdue(task) ? ' overdue' : '')}>🕒 {fmtDue(task.due_at)}</div>
+      <div className="chips">
+        <div className={'chip' + (isOverdue(task) ? ' overdue' : '')}>🕒 {fmtDue(task.due_at)}</div>
+        <div className={'chip prio-chip-' + task.priority}>
+          {task.priority === 'high' ? '🔥 ' : ''}Приоритет: {PRIORITY_LABEL[task.priority].toLowerCase()}
+        </div>
+      </div>
 
       <div className="people-row">
         <div>
@@ -57,6 +80,44 @@ export function TaskDetail({ task, users, onEdit, onDelete, onToggle }: Props) {
           </div>
         </>
       )}
+
+      <h2>Комментарии{task.comments.length > 0 ? ` · ${task.comments.length}` : ''}</h2>
+      <div className="comments">
+        {task.comments.length === 0 && <div className="muted">Пока нет комментариев</div>}
+        {task.comments.map((c) => {
+          const u = users.find((x) => x.id === c.author_id);
+          const mine = c.author_id === meId;
+          return (
+            <div key={c.id} className={'comment' + (mine ? ' mine' : '')}>
+              <Avatar user={u} size={26} />
+              <div className="bubble">
+                <div className="bubble-head">
+                  <b>{mine ? 'Вы' : u?.first_name}</b>
+                  <span className="muted">{fmtDue(c.created_at)}</span>
+                  {mine && (
+                    <button className="x small" aria-label="Удалить комментарий" onClick={() => onDeleteComment(c.id)}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <div className="bubble-text">{c.text}</div>
+              </div>
+            </div>
+          );
+        })}
+        <div className="comment-form">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={2}
+            maxLength={2000}
+            placeholder="Написать комментарий…"
+          />
+          <button className="send" onClick={send} disabled={!text.trim() || sending} aria-label="Отправить">
+            ➤
+          </button>
+        </div>
+      </div>
 
       <div className="actions">
         <button className="primary" onClick={onToggle}>

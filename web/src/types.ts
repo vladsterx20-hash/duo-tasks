@@ -13,6 +13,18 @@ export interface Attachment {
   file_url: string;
 }
 
+export type Priority = 'low' | 'normal' | 'high';
+
+export const PRIORITY_LABEL: Record<Priority, string> = { low: 'Низкий', normal: 'Обычный', high: 'Высокий' };
+export const PRIORITY_WEIGHT: Record<Priority, number> = { low: 0, normal: 1, high: 2 };
+
+export interface Comment {
+  id: number;
+  author_id: number;
+  text: string;
+  created_at: string;
+}
+
 export interface Task {
   id: number;
   title: string;
@@ -25,6 +37,8 @@ export interface Task {
   created_at: string;
   completed_at: string | null;
   attachments: Attachment[];
+  priority: Priority;
+  comments: Comment[];
 }
 
 export type AssigneeChoice = 'me' | 'partner' | 'both';

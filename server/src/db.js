@@ -35,6 +35,16 @@ export async function initDb() {
       data bytea not null,
       created_at timestamptz not null default now()
     );
+    alter table tasks add column if not exists priority text not null default 'normal'
+      check (priority in ('low','normal','high'));
+    create table if not exists comments (
+      id serial primary key,
+      task_id int not null references tasks(id) on delete cascade,
+      author_id bigint not null references users(id),
+      text text not null,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists comments_task_idx on comments(task_id);
     create index if not exists tasks_status_idx on tasks(status);
     create index if not exists attachments_task_idx on attachments(task_id);
   `);

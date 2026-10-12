@@ -98,3 +98,31 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 
 .back { position: fixed; top: 8px; left: 8px; z-index: 20; background: var(--card); padding: 6px 12px; border-radius: 999px; font-size: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
 .toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #222; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 30; max-width: 90%; }
+
+/* Приоритеты */
+.card.prio-high { box-shadow: inset 4px 0 0 #e5484d; }
+.card.prio-low { box-shadow: inset 4px 0 0 color-mix(in srgb, var(--hint) 50%, transparent); }
+.prio-flag { color: #e5484d; font-weight: 600; }
+.segmented .p-high.active { color: #e5484d; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.prio-chip-high { background: var(--danger-bg); color: #e5484d; font-weight: 600; }
+
+/* Фильтры */
+.filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin: 0 -16px 2px; padding-left: 16px; padding-right: 16px; scrollbar-width: none; }
+.filters::-webkit-scrollbar { display: none; }
+.fchip { flex: none; padding: 6px 14px; border-radius: 999px; background: var(--card); font-size: 14px; border: 1px solid transparent; }
+.fchip.active { background: var(--accent); color: var(--accent-text); }
+
+/* Комментарии */
+.comments { display: flex; flex-direction: column; gap: 10px; }
+.comment { display: flex; gap: 8px; align-items: flex-start; }
+.bubble { background: var(--card); border-radius: 14px; padding: 8px 12px; min-width: 0; flex: 1; }
+.comment.mine .bubble { background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+.bubble-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.bubble-head .x.small { margin-left: auto; width: 22px; height: 22px; font-size: 12px; }
+.bubble-text { white-space: pre-wrap; word-break: break-word; margin-top: 2px; }
+.comment-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 4px; }
+.comment-form textarea { flex: 1; font: inherit; font-size: 16px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; outline: none; resize: none; }
+.comment-form textarea:focus { border-color: var(--accent); }
+.send { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: 18px; flex: none; }
+.send:disabled { opacity: .4; }

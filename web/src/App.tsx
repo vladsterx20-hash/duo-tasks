@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
+import { PRIORITY_WEIGHT } from './types';
 import type { Task, User } from './types';
 import { haptic, inTelegram } from './utils';
 import { TaskCard } from './components/TaskCard';
@@ -16,6 +17,8 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tab, setTab] = useState<'new' | 'done'>('new');
+  const [who, setWho] = useState<'all' | 'me' | 'partner'>('all');
+  const [onlyHigh, setOnlyHigh] = useState(false);
   const [view, setView] = useState<View>({ name: 'list' });
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
   const [refreshing, setRefreshing] = useState(false);
@@ -92,12 +95,41 @@ export default function App() {
     }
   }
 
+  async function addComment(t: Task, text: string) {
+    try {
+      upsert(await api.addComment(t.id, text));
+      haptic();
+    } catch (e) {
+      showError(e);
+      throw e;
+    }
+  }
+
+  async function deleteComment(t: Task, cid: number) {
+    try {
+      upsert(await api.deleteComment(t.id, cid));
+    } catch (e) {
+      showError(e);
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const myId = me?.id;
+    return tasks.filter((t) => {
+      if (onlyHigh && t.priority !== 'high') return false;
+      if (who === 'me') return t.assignee_id === null || t.assignee_id === myId;
+      if (who === 'partner') return t.assignee_id === null || t.assignee_id !== myId;
+      return true;
+    });
+  }, [tasks, who, onlyHigh, me]);
+
   const visible = useMemo(() => {
-    const list = tasks.filter((t) => t.status === tab);
+    const list = filtered.filter((t) => t.status === tab);
     const due = (t: Task) => (t.due_at ? new Date(t.due_at).getTime() : Infinity);
-    if (tab === 'new') return list.sort((a, b) => due(a) - due(b));
+    if (tab === 'new')
+      return list.sort((a, b) => due(a) - due(b) || PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority]);
     return list.sort((a, b) => +new Date(b.completed_at ?? 0) - +new Date(a.completed_at ?? 0));
-  }, [tasks, tab]);
+  }, [filtered, tab]);
 
   // Pull-to-refresh
   const ptr = useRef<{ y: number; x: number; active: boolean } | null>(null);
@@ -161,13 +193,17 @@ export default function App() {
       <TaskDetail
         task={current}
         users={users}
+        meId={me.id}
+        onComment={(text) => addComment(current, text)}
+        onDeleteComment={(cid) => deleteComment(current, cid)}
         onEdit={() => setView({ name: 'form', taskId: current.id })}
         onDelete={() => remove(current)}
         onToggle={() => toggle(current)}
       />
     );
   } else {
-    const count = (s: 'new' | 'done') => tasks.filter((t) => t.status === s).length;
+    const count = (s: 'new' | 'done') => filtered.filter((t) => t.status === s).length;
+    const filterActive = who !== 'all' || onlyHigh;
     content = (
       <div className="screen" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
         <div className="ptr" style={{ height: refreshing ? 36 : pull }}>
@@ -181,8 +217,20 @@ export default function App() {
             Завершённые <span className="badge">{count('done')}</span>
           </button>
         </div>
+        <div className="filters">
+          {([['all', 'Все'], ['me', 'Мои'], ['partner', partner?.first_name ?? 'Партнёр']] as const).map(([k, label]) => (
+            <button key={k} className={'fchip' + (who === k ? ' active' : '')} onClick={() => setWho(k)}>
+              {label}
+            </button>
+          ))}
+          <button className={'fchip' + (onlyHigh ? ' active' : '')} onClick={() => setOnlyHigh(!onlyHigh)}>
+            🔥 Важные
+          </button>
+        </div>
         {visible.length === 0 ? (
-          <div className="empty">{tab === 'new' ? 'Новых задач нет 🎉' : 'Пока ничего не завершено'}</div>
+          <div className="empty">
+            {filterActive ? 'Ничего не найдено по фильтру' : tab === 'new' ? 'Новых задач нет 🎉' : 'Пока ничего не завершено'}
+          </div>
         ) : (
           visible.map((t) => (
             <TaskCard key={t.id} task={t} users={users} onOpen={() => setView({ name: 'detail', taskId: t.id })} onToggle={() => toggle(t)} />

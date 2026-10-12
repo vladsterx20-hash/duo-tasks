@@ -3,7 +3,7 @@ import multer from 'multer';
 import { pool } from './db.js';
 import { auth, fileToken } from './auth.js';
 import { ALLOWED, MAX_FILE } from './config.js';
-import { notifyAssigned } from './bot.js';
+import { notifyAssigned, notifyDone, notifyComment } from './bot.js';
 
 export const api = express.Router();
 
@@ -35,15 +35,20 @@ api.get(
 api.use(auth);
 
 // ---------- helpers ----------
+const PRIORITIES = ['low', 'normal', 'high'];
+const validPriority = (v) => (PRIORITIES.includes(v) ? v : undefined);
+
 const SELECT = `
-  select t.id, t.title, t.description, t.due_at, t.status, t.author_id, t.assignee_id,
+  select t.id, t.title, t.description, t.due_at, t.status, t.priority, t.author_id, t.assignee_id,
          t.created_at, t.completed_at,
-         coalesce(json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
-                  order by a.id) filter (where a.id is not null), '[]'::json) as attachments
-  from tasks t left join attachments a on a.task_id = t.id`;
+         coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
+                   order by a.id) from attachments a where a.task_id = t.id), '[]'::json) as attachments,
+         coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
+                   order by c.id) from comments c where c.task_id = t.id), '[]'::json) as comments
+  from tasks t`;
 
 async function fetchTasks(id) {
-  const { rows } = await pool.query(`${SELECT} ${id ? 'where t.id=$1' : ''} group by t.id`, id ? [id] : []);
+  const { rows } = await pool.query(`${SELECT} ${id ? 'where t.id=$1' : ''}`, id ? [id] : []);
   return rows.map((t) => ({
     ...t,
     attachments: t.attachments.map((a) => ({ ...a, file_url: `/api/files/${a.id}?t=${fileToken(a.id)}` })),
@@ -120,9 +125,9 @@ api.post(
 
     const id = await tx(async (c) => {
       const { rows } = await c.query(
-        `insert into tasks (title, description, due_at, author_id, assignee_id)
-         values ($1,$2,$3,$4,$5) returning id`,
-        [title, req.body.description || '', due ?? null, req.user.id, assignee.id]
+        `insert into tasks (title, description, due_at, author_id, assignee_id, priority)
+         values ($1,$2,$3,$4,$5,$6) returning id`,
+        [title, req.body.description || '', due ?? null, req.user.id, assignee.id, validPriority(req.body.priority) ?? 'normal']
       );
       await saveFiles(c, rows[0].id, req.files);
       return rows[0].id;
@@ -156,9 +161,17 @@ api.patch(
 
     await tx(async (c) => {
       await c.query(
-        `update tasks set title=$2, description=$3, due_at=$4, assignee_id=$5,
+        `update tasks set title=$2, description=$3, due_at=$4, assignee_id=$5, priority=$7,
            reminded = case when $6 then false else reminded end where id=$1`,
-        [id, title, b.description ?? before.description, due === undefined ? before.due_at : due, assignee.id, dueChanged]
+        [
+          id,
+          title,
+          b.description ?? before.description,
+          due === undefined ? before.due_at : due,
+          assignee.id,
+          dueChanged,
+          validPriority(b.priority) ?? before.priority,
+        ]
       );
       if (removeIds.length) await c.query('delete from attachments where task_id=$1 and id = any($2)', [id, removeIds]);
       await saveFiles(c, id, req.files);
@@ -175,14 +188,46 @@ api.patch(
 api.post(
   '/tasks/:id/status',
   wrap(async (req, res) => {
+    const id = Number(req.params.id);
     const done = req.body.status === 'done';
-    const { rowCount } = await pool.query(
+    const [before] = await fetchTasks(id);
+    if (!before) return res.status(404).json({ error: 'Задача не найдена' });
+    await pool.query(
       `update tasks set status=$2, completed_at = case when $2='done' then now() else null end,
          reminded = case when $2='done' then reminded else false end where id=$1`,
-      [Number(req.params.id), done ? 'done' : 'new']
+      [id, done ? 'done' : 'new']
     );
-    if (!rowCount) return res.status(404).json({ error: 'Задача не найдена' });
-    res.json((await fetchTasks(Number(req.params.id)))[0]);
+    const [task] = await fetchTasks(id);
+    res.json(task);
+    if (done && before.status !== 'done') notifyDone(partnerOf(req.user.id), req.user.first_name, task);
+  })
+);
+
+api.post(
+  '/tasks/:id/comments',
+  wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    const text = (req.body.text || '').trim().slice(0, 2000);
+    if (!text) return res.status(400).json({ error: 'Введите комментарий' });
+    const [exists] = await fetchTasks(id);
+    if (!exists) return res.status(404).json({ error: 'Задача не найдена' });
+    await pool.query('insert into comments (task_id, author_id, text) values ($1,$2,$3)', [id, req.user.id, text]);
+    const [task] = await fetchTasks(id);
+    res.json(task);
+    notifyComment(partnerOf(req.user.id), req.user.first_name, task, text);
+  })
+);
+
+api.delete(
+  '/tasks/:id/comments/:cid',
+  wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    await pool.query('delete from comments where id=$1 and task_id=$2 and author_id=$3', [
+      Number(req.params.cid),
+      id,
+      req.user.id,
+    ]);
+    res.json((await fetchTasks(id))[0]);
   })
 );
 

@@ -32,5 +32,7 @@ export const api = {
   create: (fd: FormData) => req<Task>('/tasks', { method: 'POST', body: fd }),
   update: (id: number, fd: FormData) => req<Task>(`/tasks/${id}`, { method: 'PATCH', body: fd }),
   setStatus: (id: number, status: 'new' | 'done') => req<Task>(`/tasks/${id}/status`, json('POST', { status })),
+  addComment: (id: number, text: string) => req<Task>(`/tasks/${id}/comments`, json('POST', { text })),
+  deleteComment: (id: number, cid: number) => req<Task>(`/tasks/${id}/comments/${cid}`, { method: 'DELETE' }),
   remove: (id: number) => req<{ ok: true }>(`/tasks/${id}`, { method: 'DELETE' }),
 };
