@@ -15,11 +15,12 @@ interface Props {
   onTake: () => void;
   onComplete: () => void;
   onReopen: () => void;
+  onReturnToNew: () => void;
   onComment: (text: string) => Promise<void>;
   onDeleteComment: (id: number) => void;
 }
 
-export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComplete, onReopen, onComment, onDeleteComment }: Props) {
+export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComplete, onReopen, onReturnToNew, onComment, onDeleteComment }: Props) {
   const author = users.find((u) => u.id === task.author_id);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -165,9 +166,12 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComp
       <div className="actions">
         {task.status === 'new' && <button className="primary" onClick={onTake}>Взять в работу</button>}
         {task.status === 'in_progress' && (
-          <button className="primary" onClick={onComplete}>
-            <Icon name="check" size={18} strokeWidth={3} /> Завершить задачу
-          </button>
+          <>
+            <button className="primary" onClick={onComplete}>
+              <Icon name="check" size={18} strokeWidth={3} /> Завершить задачу
+            </button>
+            <button className="secondary" onClick={onReturnToNew}>Вернуть в новое</button>
+          </>
         )}
         {task.status === 'done' && <button className="primary" onClick={onReopen}>Вернуть в работу</button>}
         <button className="secondary" onClick={onEdit}>Изменить</button>

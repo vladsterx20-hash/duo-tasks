@@ -229,6 +229,7 @@ export default function App() {
         onTake={() => take(current)}
         onComplete={() => setCompleting(current)}
         onReopen={() => changeStatus(current, 'in_progress').catch(() => {})}
+        onReturnToNew={() => changeStatus(current, 'new').catch(() => {})}
         onComment={(text) => addComment(current, text)}
         onDeleteComment={(cid) => deleteComment(current, cid)}
       />

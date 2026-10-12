@@ -112,8 +112,6 @@ h1, h2, h3 { margin: 0; }
 /* ===== Карточки задач ===== */
 .card { position: relative; background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; cursor: pointer; box-shadow: var(--shadow); animation: rise 0.35s var(--ease) both; }
 .card:active { filter: brightness(1.1); }
-.card.prio-high { box-shadow: inset 4px 0 0 var(--danger), var(--shadow); }
-.card.overdue { outline: 1.5px solid color-mix(in srgb, var(--danger) 70%, transparent); }
 .card.overdue .due { color: var(--danger); font-weight: 700; }
 .card.done .card-title { text-decoration: line-through; color: var(--hint); }
 .card-main { display: flex; align-items: center; gap: 12px; }
