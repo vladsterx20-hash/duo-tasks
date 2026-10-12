@@ -358,6 +358,20 @@ api.patch(
   })
 );
 
+// Догрузить фото и файлы к задаче (например, пока она в работе)
+api.post(
+  '/tasks/:id/files',
+  upload.array('files', 10),
+  wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    const [exists] = await fetchTasks(id);
+    if (!exists) return res.status(404).json({ error: 'Задача не найдена' });
+    if (!req.files?.length) return res.status(400).json({ error: 'Файл не выбран' });
+    await tx((c) => saveFiles(c, id, req.files));
+    res.json((await fetchTasks(id))[0]);
+  })
+);
+
 api.post(
   '/tasks/:id/status',
   wrap(async (req, res) => {

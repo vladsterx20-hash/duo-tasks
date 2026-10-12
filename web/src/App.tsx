@@ -133,6 +133,18 @@ export default function App() {
     }
   }
 
+  async function uploadFiles(t: Task, files: File[]) {
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    try {
+      upsert(await api.addFiles(t.id, fd));
+      haptic('success');
+    } catch (e) {
+      showError(e);
+      throw e;
+    }
+  }
+
   async function addComment(t: Task, text: string) {
     try {
       upsert(await api.addComment(t.id, text));
@@ -234,6 +246,7 @@ export default function App() {
         meId={me.id}
         onComment={(text) => addComment(current, text)}
         onDeleteComment={(cid) => deleteComment(current, cid)}
+        onUpload={(files) => uploadFiles(current, files)}
       />
     );
   } else if (overlay?.name === 'notifications') {

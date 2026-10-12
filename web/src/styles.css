@@ -344,3 +344,9 @@ textarea.field { resize: vertical; display: block; }
 .map-screen .map .leaflet-control-zoom { display: none; }
 .picker-window .leaflet-control-zoom { border: 0; border-radius: 23px; overflow: hidden; margin: 44px 12px 0 0; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35); }
 .picker-window .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; font-size: 22px; font-weight: 700; background: var(--card); color: var(--text); border-bottom-color: var(--line); }
+
+/* Догрузка фото и файлов */
+.upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.upload-btn { min-height: 48px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: transform 0.12s var(--ease), opacity 0.15s; }
+.upload-btn:active { transform: scale(0.96); }
+.upload-btn.busy { opacity: 0.5; pointer-events: none; }

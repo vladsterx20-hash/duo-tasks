@@ -11,13 +11,35 @@ interface Props {
   meId: number;
   onComment: (text: string) => Promise<void>;
   onDeleteComment: (id: number) => void;
+  onUpload: (files: File[]) => Promise<void>;
 }
 
+const MAX_FILE = 20 * 1024 * 1024;
+
 /** Действия с задачей (маршрут, статус, изменить, удалить) вынесены в меню «⋯» в правом верхнем углу */
-export function TaskDetail({ task, users, meId, onComment, onDeleteComment }: Props) {
+export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUpload }: Props) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const executors = assigneesOf(task, users);
+
+  // Фото и файлы можно догружать, пока задача в работе
+  async function pick(list: FileList | null) {
+    if (!list || list.length === 0) return;
+    const files = Array.from(list);
+    const tooBig = files.find((f) => f.size > MAX_FILE);
+    if (tooBig) return setUploadError(`«${tooBig.name}» больше 20 МБ`);
+    setUploadError('');
+    setUploading(true);
+    try {
+      await onUpload(files);
+    } catch {
+      /* ошибка показана в App */
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function send() {
     if (!text.trim() || sending) return;
@@ -89,9 +111,9 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment }: Pr
         </div>
       )}
 
-      {task.attachments.length > 0 && (
+      {(task.attachments.length > 0 || task.status === 'in_progress') && (
         <>
-          <h3>Файлы</h3>
+          <h3>Файлы{task.attachments.length > 0 ? ` · ${task.attachments.length}` : ''}</h3>
           <div className="files">
             {task.attachments.map((a) => (
               <button key={a.id} className="file-item link" onClick={() => openFile(a.file_url)}>
@@ -101,6 +123,22 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment }: Pr
               </button>
             ))}
           </div>
+          {task.status === 'in_progress' && (
+            <>
+              <div className="upload-row">
+                <label className={'upload-btn' + (uploading ? ' busy' : '')}>
+                  <Icon name="camera" size={18} /> Фото
+                  <input type="file" accept="image/*" multiple hidden disabled={uploading} onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
+                </label>
+                <label className={'upload-btn' + (uploading ? ' busy' : '')}>
+                  <Icon name="clip" size={18} /> Файл
+                  <input type="file" multiple hidden disabled={uploading} onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
+                </label>
+              </div>
+              {uploading && <div className="muted hint">Загружаем…</div>}
+              {uploadError && <div className="error" role="alert">{uploadError}</div>}
+            </>
+          )}
         </>
       )}
 
