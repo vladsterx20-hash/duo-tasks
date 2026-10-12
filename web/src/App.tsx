@@ -16,13 +16,47 @@ import { ChatScreen } from './components/ChatScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { CompleteSheet } from './components/CompleteSheet';
+import { Splash } from './components/Splash';
 
 type Overlay = null | { name: 'form'; taskId?: number } | { name: 'detail'; taskId: number } | { name: 'notifications' };
 
 const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
 const SYNC_MS = 30_000;
 
+const SPLASH_MIN_MS = 2900; // анимация идёт ~2 с, затем логотип держится около секунды
+const SPLASH_MIN_REDUCED_MS = 600; // если в системе включено «уменьшить движение»
+const SPLASH_FADE_MS = 450;
+
+/** Экран загрузки поверх приложения при каждом открытии: уходит, когда данные готовы и анимация доиграла */
 export default function App() {
+  const [ready, setReady] = useState(false);
+  const [minDone, setMinDone] = useState(false);
+  const [phase, setPhase] = useState<'show' | 'leave' | 'gone'>('show');
+
+  useEffect(() => {
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const t = setTimeout(() => setMinDone(true), reduced ? SPLASH_MIN_REDUCED_MS : SPLASH_MIN_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!(ready && minDone)) return;
+    setPhase('leave');
+    const t = setTimeout(() => setPhase('gone'), SPLASH_FADE_MS);
+    return () => clearTimeout(t);
+  }, [ready, minDone]);
+
+  const onReady = useCallback(() => setReady(true), []);
+
+  return (
+    <>
+      <AppInner onReady={onReady} />
+      {phase !== 'gone' && <Splash leaving={phase === 'leave'} />}
+    </>
+  );
+}
+
+function AppInner({ onReady }: { onReady: () => void }) {
   const [me, setMe] = useState<User>();
   const [users, setUsers] = useState<User[]>([]);
   const [settings, setSettings] = useState<Settings>();
@@ -36,6 +70,11 @@ export default function App() {
   const [chatTaskId, setChatTaskId] = useState<number | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
   const [toast, setToast] = useState('');
+
+  // Данные загружены (или доступ закрыт / ошибка) — можно убирать экран загрузки
+  useEffect(() => {
+    if (state !== 'loading') onReady();
+  }, [state, onReady]);
 
   const showError = useCallback((e: unknown) => {
     setToast((e as Error).message || 'Ошибка');

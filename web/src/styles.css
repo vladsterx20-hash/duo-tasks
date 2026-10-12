@@ -469,3 +469,19 @@ textarea.field { resize: vertical; display: block; }
 .menu { top: calc(72px + env(safe-area-inset-top)); }
 .screen-overlay { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
 .comments-section { padding-bottom: 6px; }
+
+/* ===== Экран загрузки ===== */
+.splash { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: var(--page); transition: opacity 0.45s ease; }
+.splash.out { opacity: 0; pointer-events: none; }
+.splash-logo { display: flex; align-items: center; gap: 16px; }
+.splash-icon { flex: none; overflow: visible; animation: splash-pop 0.5s var(--ease) both; }
+.splash-ring { stroke-dasharray: 145; stroke-dashoffset: 145; animation: splash-draw 0.85s cubic-bezier(0.65, 0, 0.35, 1) 0.35s forwards; }
+.splash-check { stroke-dasharray: 36; stroke-dashoffset: 36; animation: splash-draw 0.35s ease-out 1.15s forwards; }
+.splash-text { overflow: hidden; white-space: nowrap; max-width: 0; opacity: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; color: var(--text); animation: splash-reveal 0.6s var(--ease) 1.4s forwards; }
+.splash-text b { color: var(--accent); font-weight: 800; }
+@keyframes splash-pop { from { transform: scale(0.55); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes splash-draw { to { stroke-dashoffset: 0; } }
+@keyframes splash-reveal { from { max-width: 0; opacity: 0; } to { max-width: 300px; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .splash-icon, .splash-ring, .splash-check, .splash-text { animation-delay: 0s !important; }
+}
