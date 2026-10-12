@@ -13,6 +13,14 @@ export interface Attachment {
   file_url: string;
 }
 
+export interface Settings {
+  remind_minutes: number;
+  n_assigned: boolean;
+  n_done: boolean;
+  n_comment: boolean;
+  n_remind: boolean;
+}
+
 export type Priority = 'low' | 'normal' | 'high';
 
 export const PRIORITY_LABEL: Record<Priority, string> = { low: 'Низкий', normal: 'Обычный', high: 'Высокий' };

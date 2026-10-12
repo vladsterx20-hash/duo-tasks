@@ -45,6 +45,16 @@ export async function initDb() {
       created_at timestamptz not null default now()
     );
     create index if not exists comments_task_idx on comments(task_id);
+    alter table users add column if not exists remind_minutes int not null default 30;
+    alter table users add column if not exists n_assigned boolean not null default true;
+    alter table users add column if not exists n_done boolean not null default true;
+    alter table users add column if not exists n_comment boolean not null default true;
+    alter table users add column if not exists n_remind boolean not null default true;
+    create table if not exists reminders_sent (
+      task_id int not null references tasks(id) on delete cascade,
+      user_id bigint not null references users(id),
+      primary key (task_id, user_id)
+    );
     create index if not exists tasks_status_idx on tasks(status);
     create index if not exists attachments_task_idx on attachments(task_id);
   `);

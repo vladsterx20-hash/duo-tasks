@@ -104,7 +104,39 @@ api.get(
     const { rows } = await pool.query('select id, first_name, username, photo_url from users where id = any($1)', [
       ALLOWED,
     ]);
-    res.json({ me: req.user, users: rows });
+    res.json({ me: req.user, users: rows, settings: await getSettings(req.user.id) });
+  })
+);
+
+const REMIND_CHOICES = [5, 10, 15, 30, 60, 120, 1440];
+const SETTING_FLAGS = ['n_assigned', 'n_done', 'n_comment', 'n_remind'];
+
+async function getSettings(userId) {
+  const { rows } = await pool.query(
+    'select remind_minutes, n_assigned, n_done, n_comment, n_remind from users where id=$1',
+    [userId]
+  );
+  return rows[0];
+}
+
+api.put(
+  '/settings',
+  wrap(async (req, res) => {
+    const cur = await getSettings(req.user.id);
+    const next = { ...cur };
+    for (const f of SETTING_FLAGS) if (typeof req.body[f] === 'boolean') next[f] = req.body[f];
+    if (REMIND_CHOICES.includes(Number(req.body.remind_minutes))) next.remind_minutes = Number(req.body.remind_minutes);
+    await pool.query(
+      `update users set remind_minutes=$2, n_assigned=$3, n_done=$4, n_comment=$5, n_remind=$6 where id=$1`,
+      [req.user.id, next.remind_minutes, next.n_assigned, next.n_done, next.n_comment, next.n_remind]
+    );
+    // Если сменили порог напоминания, пусть напоминания для будущих задач сработают заново
+    if (next.remind_minutes !== cur.remind_minutes)
+      await pool.query(
+        `delete from reminders_sent where user_id=$1 and task_id in (select id from tasks where due_at > now())`,
+        [req.user.id]
+      );
+    res.json(next);
   })
 );
 
@@ -163,6 +195,7 @@ api.patch(
       await c.query(
         `update tasks set title=$2, description=$3, due_at=$4, assignee_id=$5, priority=$7,
            reminded = case when $6 then false else reminded end where id=$1`,
+        // (reminded оставлен для совместимости; актуальные напоминания хранятся в reminders_sent)
         [
           id,
           title,
@@ -173,6 +206,7 @@ api.patch(
           validPriority(b.priority) ?? before.priority,
         ]
       );
+      if (dueChanged) await c.query('delete from reminders_sent where task_id=$1', [id]);
       if (removeIds.length) await c.query('delete from attachments where task_id=$1 and id = any($2)', [id, removeIds]);
       await saveFiles(c, id, req.files);
     });
@@ -197,6 +231,7 @@ api.post(
          reminded = case when $2='done' then reminded else false end where id=$1`,
       [id, done ? 'done' : 'new']
     );
+    if (!done) await pool.query('delete from reminders_sent where task_id=$1', [id]);
     const [task] = await fetchTasks(id);
     res.json(task);
     if (done && before.status !== 'done') notifyDone(partnerOf(req.user.id), req.user.first_name, task);

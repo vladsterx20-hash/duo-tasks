@@ -5,7 +5,14 @@ export const inTelegram = () => Boolean(WebApp.initData);
 
 export function fmtDue(iso: string | null): string {
   if (!iso) return 'Без срока';
-  return new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const d = new Date(iso);
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((startOfDay(d) - startOfDay(new Date())) / 86_400_000);
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  if (diff === 0) return `Сегодня, ${time}`;
+  if (diff === 1) return `Завтра, ${time}`;
+  if (diff === -1) return `Вчера, ${time}`;
+  return d.toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 export const isOverdue = (t: Task) => t.status === 'new' && !!t.due_at && new Date(t.due_at).getTime() < Date.now();

@@ -1,5 +1,5 @@
 import WebApp from '@twa-dev/sdk';
-import type { Task, User } from './types';
+import type { Settings, Task, User } from './types';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -27,7 +27,8 @@ const json = (method: string, data: unknown): RequestInit => ({
 });
 
 export const api = {
-  me: () => req<{ me: User; users: User[] }>('/me'),
+  me: () => req<{ me: User; users: User[]; settings: Settings }>('/me'),
+  saveSettings: (s: Partial<Settings>) => req<Settings>('/settings', json('PUT', s)),
   tasks: () => req<Task[]>('/tasks'),
   create: (fd: FormData) => req<Task>('/tasks', { method: 'POST', body: fd }),
   update: (id: number, fd: FormData) => req<Task>(`/tasks/${id}`, { method: 'PATCH', body: fd }),

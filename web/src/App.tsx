@@ -2,19 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
 import { PRIORITY_WEIGHT } from './types';
-import type { Task, User } from './types';
+import type { Settings, Task, User } from './types';
+import { SettingsScreen } from './components/SettingsScreen';
 import { haptic, inTelegram } from './utils';
 import { TaskCard } from './components/TaskCard';
 import { TaskForm } from './components/TaskForm';
 import { TaskDetail } from './components/TaskDetail';
 
-type View = { name: 'list' } | { name: 'form'; taskId?: number } | { name: 'detail'; taskId: number };
+type View = { name: 'list' } | { name: 'settings' } | { name: 'form'; taskId?: number } | { name: 'detail'; taskId: number };
 
 const PULL = 70;
 
 export default function App() {
   const [me, setMe] = useState<User>();
   const [users, setUsers] = useState<User[]>([]);
+  const [settings, setSettings] = useState<Settings>();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tab, setTab] = useState<'new' | 'done'>('new');
   const [who, setWho] = useState<'all' | 'me' | 'partner'>('all');
@@ -36,6 +38,7 @@ export default function App() {
       if (m) {
         setMe(m.me);
         setUsers(m.users);
+        setSettings(m.settings);
       }
       setTasks(list);
       setState('ready');
@@ -155,7 +158,16 @@ export default function App() {
     }
   };
 
-  if (state === 'loading') return <div className="center muted">Загрузка…</div>;
+  if (state === 'loading')
+    return (
+      <div className="screen" aria-busy="true" aria-label="Загрузка">
+        <div className="skeleton topbar-sk" />
+        <div className="skeleton tabs-sk" />
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="skeleton card-sk" style={{ animationDelay: `${i * 0.12}s` }} />
+        ))}
+      </div>
+    );
   if (state === 'denied')
     return (
       <div className="center">
@@ -176,7 +188,9 @@ export default function App() {
   const current = view.name !== 'list' && 'taskId' in view && view.taskId ? tasks.find((t) => t.id === view.taskId) : undefined;
 
   let content: React.ReactNode;
-  if (view.name === 'form') {
+  if (view.name === 'settings' && settings) {
+    content = <SettingsScreen settings={settings} onChange={setSettings} onError={showError} />;
+  } else if (view.name === 'form') {
     content = (
       <TaskForm
         task={current}
@@ -209,6 +223,19 @@ export default function App() {
         <div className="ptr" style={{ height: refreshing ? 36 : pull }}>
           {(refreshing || pull > 0) && <span className={refreshing ? 'spin' : ''}>{refreshing ? '⟳' : pull >= PULL / 2 + 5 ? 'Отпустите' : '↓'}</span>}
         </div>
+        <header className="topbar">
+          <div>
+            <div className="hello">Привет, {me.first_name} 👋</div>
+            <div className="muted">
+              {tasks.filter((t) => t.status === 'new').length === 0
+                ? 'Все задачи выполнены'
+                : `Активных задач: ${tasks.filter((t) => t.status === 'new').length}`}
+            </div>
+          </div>
+          <button className="icon-btn" aria-label="Настройки уведомлений" onClick={() => setView({ name: 'settings' })}>
+            🔔
+          </button>
+        </header>
         <div className="tabs">
           <button className={tab === 'new' ? 'active' : ''} onClick={() => setTab('new')}>
             Новые задачи <span className="badge">{count('new')}</span>
@@ -229,7 +256,17 @@ export default function App() {
         </div>
         {visible.length === 0 ? (
           <div className="empty">
-            {filterActive ? 'Ничего не найдено по фильтру' : tab === 'new' ? 'Новых задач нет 🎉' : 'Пока ничего не завершено'}
+            <div className="empty-icon">{filterActive ? '🔎' : tab === 'new' ? '🎉' : '📭'}</div>
+            <div className="empty-title">
+              {filterActive ? 'Ничего не найдено' : tab === 'new' ? 'Новых задач нет' : 'Пока ничего не завершено'}
+            </div>
+            <div className="muted">
+              {filterActive
+                ? 'Попробуйте сменить фильтр'
+                : tab === 'new'
+                  ? 'Нажмите «＋», чтобы добавить задачу'
+                  : 'Выполненные задачи появятся здесь'}
+            </div>
           </div>
         ) : (
           visible.map((t) => (
