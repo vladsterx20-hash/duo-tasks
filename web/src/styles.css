@@ -485,3 +485,7 @@ textarea.field { resize: vertical; display: block; }
 @media (prefers-reduced-motion: reduce) {
   .splash-icon, .splash-ring, .splash-check, .splash-text { animation-delay: 0s !important; }
 }
+
+/* Кнопка «Взять в работу» в списке: белый текст (в светлой теме — тёмный, чтобы читался) */
+.take-btn { color: #ffffff; }
+:root[data-theme='light'] .take-btn { color: var(--text); }
