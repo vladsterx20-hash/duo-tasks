@@ -58,11 +58,19 @@ export function Home({ tasks, users, onOpen, onTake, onAll, onRefresh }: Props) 
 
       <div className="stats">
         <div className="stat">
-          <div className="stat-label">Сделанные задачи</div>
+          <div className="stat-label">
+            Сделанные
+            <br />
+            задачи
+          </div>
           <div className="stat-num">{doneCount}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Активные задачи</div>
+          <div className="stat-label">
+            Активные
+            <br />
+            задачи
+          </div>
           <div className="stat-num">{activeCount}</div>
         </div>
       </div>

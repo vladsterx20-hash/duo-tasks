@@ -30,6 +30,7 @@ export function Splash({ leaving }: { leaving: boolean }) {
           <span>Трекер</span> <b>задач</b>
         </div>
       </div>
+      <div className="splash-slogan">От Минета до Гондона</div>
     </div>
   );
 }

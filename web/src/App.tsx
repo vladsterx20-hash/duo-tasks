@@ -23,7 +23,7 @@ type Overlay = null | { name: 'form'; taskId?: number } | { name: 'detail'; task
 const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
 const SYNC_MS = 30_000;
 
-const SPLASH_MIN_MS = 2900; // анимация идёт ~2 с, затем логотип держится около секунды
+const SPLASH_MIN_MS = 3500; // анимация идёт ~2,5 с, затем логотип и лозунг держатся около секунды
 const SPLASH_MIN_REDUCED_MS = 600; // если в системе включено «уменьшить движение»
 const SPLASH_FADE_MS = 450;
 
