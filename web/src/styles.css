@@ -502,3 +502,6 @@ textarea.field { resize: vertical; display: block; }
 .splash-text b { color: var(--accent); font-weight: 800; }
 .splash-slogan { margin-top: 6px; padding: 0; text-align: left; white-space: nowrap; transform: translateX(-10px); animation: splash-slogan-in 0.55s var(--ease) 2s forwards; }
 @keyframes splash-slogan-in { to { opacity: 1; transform: none; } }
+
+/* Фильтры (Все / Мои / имя / Важные) — по центру, под переключателем статусов; при нехватке места переносятся */
+.filters { justify-content: center; flex-wrap: wrap; overflow: visible; margin: 0 0 14px; padding: 0; }
