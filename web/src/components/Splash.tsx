@@ -27,10 +27,12 @@ export function Splash({ leaving }: { leaving: boolean }) {
           />
         </svg>
         <div className="splash-text">
-          <span>Трекер</span> <b>задач</b>
+          <div className="splash-title">
+            <span>Трекер</span> <b>задач</b>
+          </div>
+          <div className="splash-slogan">От Минета до Гондона</div>
         </div>
       </div>
-      <div className="splash-slogan">От Минета до Гондона</div>
     </div>
   );
 }
