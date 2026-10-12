@@ -8,12 +8,11 @@ interface Props {
   users: User[];
   onOpen: () => void;
   onTake: () => void;
-  onComplete: () => void;
   /** компактный вариант для главной (без кнопок действий) */
   compact?: boolean;
 }
 
-export function TaskCard({ task, users, onOpen, onTake, onComplete, compact }: Props) {
+export function TaskCard({ task, users, onOpen, onTake, compact }: Props) {
   const done = task.status === 'done';
 
   return (
@@ -48,17 +47,6 @@ export function TaskCard({ task, users, onOpen, onTake, onComplete, compact }: P
           }}
         >
           Взять в работу
-        </button>
-      )}
-      {!compact && task.status === 'in_progress' && (
-        <button
-          className="take-btn finish"
-          onClick={(e) => {
-            e.stopPropagation();
-            onComplete();
-          }}
-        >
-          Завершить задачу
         </button>
       )}
     </div>

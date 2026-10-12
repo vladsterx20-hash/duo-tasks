@@ -17,12 +17,11 @@ interface Props {
   users: User[];
   onOpen: (t: Task) => void;
   onTake: (t: Task) => void;
-  onComplete: (t: Task) => void;
   onAll: () => void;
   onRefresh: () => Promise<void>;
 }
 
-export function Home({ tasks, users, onOpen, onTake, onComplete, onAll, onRefresh }: Props) {
+export function Home({ tasks, users, onOpen, onTake, onAll, onRefresh }: Props) {
   const [period, setPeriod] = useState<Period>('month');
 
   // Прибыль и «сделанные» — только завершённые задачи, по дате завершения в выбранном периоде
@@ -88,7 +87,6 @@ export function Home({ tasks, users, onOpen, onTake, onComplete, onAll, onRefres
             compact
             onOpen={() => onOpen(t)}
             onTake={() => onTake(t)}
-            onComplete={() => onComplete(t)}
           />
         ))
       )}

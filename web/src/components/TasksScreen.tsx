@@ -18,11 +18,10 @@ interface Props {
   onTab: (s: Status) => void;
   onOpen: (t: Task) => void;
   onTake: (t: Task) => void;
-  onComplete: (t: Task) => void;
   onRefresh: () => Promise<void>;
 }
 
-export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, onComplete, onRefresh }: Props) {
+export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, onRefresh }: Props) {
   const [who, setWho] = useState<'all' | 'me' | 'partner'>('all');
   const [onlyHigh, setOnlyHigh] = useState(false);
   const partner = users.find((u) => u.id !== meId);
@@ -93,7 +92,6 @@ export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, on
               users={users}
               onOpen={() => onOpen(t)}
               onTake={() => onTake(t)}
-              onComplete={() => onComplete(t)}
             />
           ))
         )}

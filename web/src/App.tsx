@@ -256,7 +256,6 @@ export default function App() {
           users={users}
           onOpen={openTask}
           onTake={take}
-          onComplete={setCompleting}
           onAll={() => setTab('tasks')}
           onRefresh={refresh}
         />
@@ -272,7 +271,6 @@ export default function App() {
           onTab={setTaskTab}
           onOpen={openTask}
           onTake={take}
-          onComplete={setCompleting}
           onRefresh={refresh}
         />
       );
