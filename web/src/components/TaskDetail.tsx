@@ -2,8 +2,9 @@ import { useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { PRIORITY_LABEL } from '../types';
 import type { Task, User } from '../types';
-import { assigneesOf, fmtDue, fmtSize, inTelegram, isOverdue, openFile } from '../utils';
+import { assigneesOf, fmtDue, fmtMoney, fmtSize, inTelegram, isOverdue, openFile, openRoute, statusLabel } from '../utils';
 import { Avatar } from './Avatar';
+import { Icon } from './Icon';
 
 interface Props {
   task: Task;
@@ -11,14 +12,15 @@ interface Props {
   meId: number;
   onEdit: () => void;
   onDelete: () => void;
-  onToggle: () => void;
+  onTake: () => void;
+  onComplete: () => void;
+  onReopen: () => void;
   onComment: (text: string) => Promise<void>;
   onDeleteComment: (id: number) => void;
 }
 
-export function TaskDetail({ task, users, meId, onEdit, onDelete, onToggle, onComment, onDeleteComment }: Props) {
+export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComplete, onReopen, onComment, onDeleteComment }: Props) {
   const author = users.find((u) => u.id === task.author_id);
-  const done = task.status === 'done';
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -28,6 +30,8 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onToggle, onCo
     try {
       await onComment(text.trim());
       setText('');
+    } catch {
+      /* ошибка показана в App */
     } finally {
       setSending(false);
     }
@@ -39,26 +43,33 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onToggle, onCo
   }
 
   return (
-    <div className="screen detail">
-      <h1 className={done ? 'struck' : ''}>{task.title}</h1>
+    <div className="detail">
+      <h2 className={'detail-title' + (task.status === 'done' ? ' struck' : '')}>
+        <span className="pin-num">{task.id}</span> {task.title}
+      </h2>
 
       <div className="chips">
-        <div className={'chip' + (isOverdue(task) ? ' overdue' : '')}>🕒 {fmtDue(task.due_at)}</div>
-        <div className={'chip prio-chip-' + task.priority}>
+        <span className={'chip status-' + task.status}>{statusLabel[task.status]}</span>
+        <span className={'chip' + (isOverdue(task) ? ' overdue' : '')}>🕒 {fmtDue(task.due_at)}</span>
+        <span className={'chip' + (task.priority === 'high' ? ' hot' : '')}>
           {task.priority === 'high' ? '🔥 ' : ''}Приоритет: {PRIORITY_LABEL[task.priority].toLowerCase()}
-        </div>
+        </span>
       </div>
 
       <div className="people-row">
         <div>
           <span className="muted">Автор</span>
-          <div className="person"><Avatar user={author} size={28} /> {author?.first_name}</div>
+          <div className="person">
+            <Avatar user={author} size={28} /> {author?.first_name}
+          </div>
         </div>
         <div>
           <span className="muted">Исполнитель</span>
           <div className="person">
             {assigneesOf(task, users).map((u) => (
-              <span key={u.id} className="person"><Avatar user={u} size={28} /> {u.first_name}</span>
+              <span key={u.id} className="person">
+                <Avatar user={u} size={28} /> {u.first_name}
+              </span>
             ))}
           </div>
         </div>
@@ -66,9 +77,34 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onToggle, onCo
 
       {task.description && <p className="desc">{task.description}</p>}
 
+      {(task.address || task.lat !== null) && (
+        <div className="info-card">
+          <div className="info-row">
+            <Icon name="map" size={18} />
+            <span>{task.address || 'Метка на карте'}</span>
+          </div>
+          {task.lat !== null && task.lng !== null && (
+            <button className="route-btn wide" onClick={() => openRoute(task.lat!, task.lng!)}>
+              <Icon name="route" size={16} /> Маршрут
+            </button>
+          )}
+        </div>
+      )}
+
+      {(task.price > 0 || task.cost > 0 || task.profit !== null) && (
+        <div className="info-card money">
+          <div className="money-row"><span className="muted">Стоимость</span><b>{fmtMoney(task.price)}</b></div>
+          <div className="money-row"><span className="muted">Себестоимость</span><b>{fmtMoney(task.cost)}</b></div>
+          <div className="money-row">
+            <span className="muted">{task.status === 'done' ? 'Прибыль (итог)' : 'Прибыль (план)'}</span>
+            <b className="orange">{fmtMoney(task.status === 'done' && task.profit !== null ? task.profit : task.price - task.cost)}</b>
+          </div>
+        </div>
+      )}
+
       {task.attachments.length > 0 && (
         <>
-          <h2>Файлы</h2>
+          <h3>Файлы</h3>
           <div className="files">
             {task.attachments.map((a) => (
               <button key={a.id} className="file-item link" onClick={() => openFile(a.file_url)}>
@@ -81,48 +117,50 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onToggle, onCo
         </>
       )}
 
-      <h2>Комментарии{task.comments.length > 0 ? ` · ${task.comments.length}` : ''}</h2>
+      <h3>Комментарии{task.comments.length > 0 ? ` · ${task.comments.length}` : ''}</h3>
       <div className="comments">
         {task.comments.length === 0 && <div className="muted">Пока нет комментариев</div>}
         {task.comments.map((c) => {
-          const u = users.find((x) => x.id === c.author_id);
           const mine = c.author_id === meId;
+          const u = users.find((x) => x.id === c.author_id);
           return (
-            <div key={c.id} className={'comment' + (mine ? ' mine' : '')}>
-              <Avatar user={u} size={26} />
-              <div className="bubble">
-                <div className="bubble-head">
-                  <b>{mine ? 'Вы' : u?.first_name}</b>
-                  <span className="muted">{fmtDue(c.created_at)}</span>
-                  {mine && (
-                    <button className="x small" aria-label="Удалить комментарий" onClick={() => onDeleteComment(c.id)}>
-                      ✕
-                    </button>
-                  )}
-                </div>
-                <div className="bubble-text">{c.text}</div>
+            <div key={c.id} className={'bubble' + (mine ? ' mine' : '')}>
+              {!mine && <div className="bubble-name">{u?.first_name}</div>}
+              <div className="bubble-text">{c.text}</div>
+              <div className="bubble-time">
+                {fmtDue(c.created_at)}
+                {mine && (
+                  <button className="bubble-del" aria-label="Удалить комментарий" onClick={() => onDeleteComment(c.id)}>
+                    удалить
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
         <div className="comment-form">
-          <textarea
+          <input
+            className="field pill"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            rows={2}
+            onKeyDown={(e) => e.key === 'Enter' && send()}
             maxLength={2000}
-            placeholder="Написать комментарий…"
+            placeholder="Комментарий…"
           />
-          <button className="send" onClick={send} disabled={!text.trim() || sending} aria-label="Отправить">
-            ➤
+          <button className="round-btn orange" onClick={send} disabled={!text.trim() || sending} aria-label="Отправить">
+            <Icon name="send" size={18} strokeWidth={3} />
           </button>
         </div>
       </div>
 
       <div className="actions">
-        <button className="primary" onClick={onToggle}>
-          {done ? '↩ Вернуть в новые' : '✓ Отметить выполненной'}
-        </button>
+        {task.status === 'new' && <button className="primary" onClick={onTake}>Взять в работу</button>}
+        {task.status === 'in_progress' && (
+          <button className="primary" onClick={onComplete}>
+            <Icon name="check" size={18} strokeWidth={3} /> Завершить задачу
+          </button>
+        )}
+        {task.status === 'done' && <button className="primary" onClick={onReopen}>Вернуть в работу</button>}
         <button className="secondary" onClick={onEdit}>Изменить</button>
         <button className="danger" onClick={confirmDelete}>Удалить</button>
       </div>

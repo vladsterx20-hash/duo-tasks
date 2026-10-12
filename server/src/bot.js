@@ -33,7 +33,13 @@ export const fmtDate = (d) =>
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const KIND_COLUMN = { assigned: 'n_assigned', done: 'n_done', comment: 'n_comment', remind: 'n_remind' };
+const KIND_COLUMN = {
+  assigned: 'n_assigned',
+  taken: 'n_taken',
+  done: 'n_done',
+  comment: 'n_comment',
+  remind: 'n_remind',
+};
 
 export async function notify(userId, html, kind) {
   try {
@@ -60,7 +66,10 @@ export const notifyAssigned = (userId, authorName, task) =>
     'assigned'
   );
 
-export const notifyDone = (userId, name, task) =>
+export const notifyTaken = (userId, name, task) =>
+  notify(userId, `🛠 <b>${esc(name)}</b> взял(а) в работу:\n<b>${esc(task.title)}</b>`, 'taken');
+
+export const notifyDone =(userId, name, task) =>
   notify(userId, `✅ <b>${esc(name)}</b> выполнил(а) задачу:\n<b>${esc(task.title)}</b>`, 'done');
 
 export const notifyComment = (userId, name, task, text) =>

@@ -1,66 +1,85 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
-import { PRIORITY_WEIGHT } from './types';
-import type { Settings, Task, User } from './types';
-import { SettingsScreen } from './components/SettingsScreen';
+import type { AppNotification, Settings, Status, Task, User } from './types';
+import { applyTheme } from './theme';
 import { haptic, inTelegram } from './utils';
-import { TaskCard } from './components/TaskCard';
+import { BottomNav, type Tab } from './components/BottomNav';
+import { BellButton, TopBar } from './components/TopBar';
+import { Home } from './components/Home';
+import { TasksScreen } from './components/TasksScreen';
 import { TaskForm } from './components/TaskForm';
 import { TaskDetail } from './components/TaskDetail';
+import { MapScreen } from './components/MapScreen';
+import { ChatScreen } from './components/ChatScreen';
+import { SettingsScreen } from './components/SettingsScreen';
+import { NotificationsScreen } from './components/NotificationsScreen';
+import { CompleteSheet } from './components/CompleteSheet';
 
-type View = { name: 'list' } | { name: 'settings' } | { name: 'form'; taskId?: number } | { name: 'detail'; taskId: number };
+type Overlay = null | { name: 'form'; taskId?: number } | { name: 'detail'; taskId: number } | { name: 'notifications' };
 
-const PULL = 70;
+const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
+const SYNC_MS = 30_000;
 
 export default function App() {
   const [me, setMe] = useState<User>();
   const [users, setUsers] = useState<User[]>([]);
   const [settings, setSettings] = useState<Settings>();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [tab, setTab] = useState<'new' | 'done'>('new');
-  const [who, setWho] = useState<'all' | 'me' | 'partner'>('all');
-  const [onlyHigh, setOnlyHigh] = useState(false);
-  const [view, setView] = useState<View>({ name: 'list' });
+  const [notes, setNotes] = useState<{ items: AppNotification[]; unread: number }>({ items: [], unread: 0 });
+  const [tab, setTab] = useState<Tab>('home');
+  const [taskTab, setTaskTab] = useState<Status>('new');
+  const [overlay, setOverlay] = useState<Overlay>(null);
+  const [completing, setCompleting] = useState<Task | null>(null);
+  const [chatTaskId, setChatTaskId] = useState<number | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
-  const [refreshing, setRefreshing] = useState(false);
-  const [pull, setPull] = useState(0);
   const [toast, setToast] = useState('');
 
-  const showError = (e: unknown) => {
+  const showError = useCallback((e: unknown) => {
     setToast((e as Error).message || 'Ошибка');
     setTimeout(() => setToast(''), 3000);
-  };
-
-  const load = useCallback(async (first = false) => {
-    try {
-      const [m, list] = await Promise.all([first ? api.me() : null, api.tasks()]);
-      if (m) {
-        setMe(m.me);
-        setUsers(m.users);
-        setSettings(m.settings);
-      }
-      setTasks(list);
-      setState('ready');
-    } catch (e) {
-      if (e instanceof ApiError && (e.status === 403 || e.status === 401)) setState('denied');
-      else if (first) setState('error');
-      else showError(e);
-    }
   }, []);
 
+  const load = useCallback(
+    async (first = false) => {
+      try {
+        const [m, list, n] = await Promise.all([first ? api.me() : null, api.tasks(), api.notifications()]);
+        if (m) {
+          setMe(m.me);
+          setUsers(m.users);
+          setSettings(m.settings);
+          applyTheme(m.settings.theme);
+        }
+        setTasks(list);
+        setNotes(n);
+        setState('ready');
+      } catch (e) {
+        if (e instanceof ApiError && (e.status === 403 || e.status === 401)) setState('denied');
+        else if (first) setState('error');
+        else showError(e);
+      }
+    },
+    [showError]
+  );
+
+  // Обновление при открытии, при возврате в приложение и раз в 30 секунд (синхронизация между двумя пользователями)
   useEffect(() => {
     load(true);
     const onVis = () => document.visibilityState === 'visible' && load();
     document.addEventListener('visibilitychange', onVis);
-    return () => document.removeEventListener('visibilitychange', onVis);
+    const timer = setInterval(() => document.visibilityState === 'visible' && load(), SYNC_MS);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      clearInterval(timer);
+    };
   }, [load]);
 
-  const upsert = (t: Task) => setTasks((prev) => (prev.some((x) => x.id === t.id) ? prev.map((x) => (x.id === t.id ? t : x)) : [t, ...prev]));
+  const upsert = (t: Task) =>
+    setTasks((prev) => (prev.some((x) => x.id === t.id) ? prev.map((x) => (x.id === t.id ? t : x)) : [t, ...prev]));
 
   // Кнопка «Назад» Telegram
   const back = useCallback(() => {
-    setView((v) => (v.name === 'form' && v.taskId ? { name: 'detail', taskId: v.taskId } : { name: 'list' }));
+    setOverlay((o) => (o?.name === 'form' && o.taskId ? { name: 'detail', taskId: o.taskId } : null));
   }, []);
   useEffect(() => {
     if (!inTelegram()) return;
@@ -72,19 +91,32 @@ export default function App() {
   }, [back]);
   useEffect(() => {
     if (!inTelegram()) return;
-    if (view.name === 'list') WebApp.BackButton.hide();
-    else WebApp.BackButton.show();
-  }, [view.name]);
+    if (overlay) WebApp.BackButton.show();
+    else WebApp.BackButton.hide();
+  }, [overlay]);
 
-  async function toggle(t: Task) {
-    const next = t.status === 'done' ? 'new' : 'done';
-    upsert({ ...t, status: next }); // оптимистично
-    haptic(next === 'done' ? 'success' : 'light');
+  async function changeStatus(t: Task, status: Status, profit?: number) {
+    const before = t;
+    upsert({ ...t, status }); // оптимистично
+    haptic(status === 'done' ? 'success' : 'light');
     try {
-      upsert(await api.setStatus(t.id, next));
+      upsert(await api.setStatus(t.id, status, profit));
     } catch (e) {
-      upsert(t);
+      upsert(before);
       showError(e);
+      throw e;
+    }
+  }
+
+  const take = (t: Task) => changeStatus(t, 'in_progress').catch(() => {});
+
+  async function confirmComplete(profit: number) {
+    if (!completing) return;
+    try {
+      await changeStatus(completing, 'done', profit);
+      setCompleting(null);
+    } catch {
+      /* окно остаётся открытым, ошибка показана */
     }
   }
 
@@ -92,7 +124,7 @@ export default function App() {
     try {
       await api.remove(t.id);
       setTasks((p) => p.filter((x) => x.id !== t.id));
-      setView({ name: 'list' });
+      setOverlay(null);
     } catch (e) {
       showError(e);
     }
@@ -116,54 +148,21 @@ export default function App() {
     }
   }
 
-  const filtered = useMemo(() => {
-    const myId = me?.id;
-    return tasks.filter((t) => {
-      if (onlyHigh && t.priority !== 'high') return false;
-      if (who === 'me') return t.assignee_id === null || t.assignee_id === myId;
-      if (who === 'partner') return t.assignee_id === null || t.assignee_id !== myId;
-      return true;
-    });
-  }, [tasks, who, onlyHigh, me]);
-
-  const visible = useMemo(() => {
-    const list = filtered.filter((t) => t.status === tab);
-    const due = (t: Task) => (t.due_at ? new Date(t.due_at).getTime() : Infinity);
-    if (tab === 'new')
-      return list.sort((a, b) => due(a) - due(b) || PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority]);
-    return list.sort((a, b) => +new Date(b.completed_at ?? 0) - +new Date(a.completed_at ?? 0));
-  }, [filtered, tab]);
-
-  // Pull-to-refresh
-  const ptr = useRef<{ y: number; x: number; active: boolean } | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => {
-    ptr.current = { y: e.touches[0].clientY, x: e.touches[0].clientX, active: window.scrollY <= 0 };
-  };
-  const onTouchMove = (e: React.TouchEvent) => {
-    const p = ptr.current;
-    if (!p || !p.active || refreshing) return;
-    const dy = e.touches[0].clientY - p.y;
-    const dx = Math.abs(e.touches[0].clientX - p.x);
-    if (dy > 0 && dy > dx) setPull(Math.min(dy * 0.5, 100));
-  };
-  const onTouchEnd = async () => {
-    const triggered = pull >= PULL / 2 + 5;
-    ptr.current = null;
-    setPull(0);
-    if (triggered) {
-      setRefreshing(true);
-      haptic();
-      await load();
-      setRefreshing(false);
+  function openNotifications() {
+    setOverlay({ name: 'notifications' });
+    if (notes.unread > 0) {
+      api.readNotifications().catch(() => {});
+      setNotes((n) => ({ ...n, unread: 0 })); // подсветка непрочитанных остаётся, пока список открыт
     }
-  };
+  }
 
   if (state === 'loading')
     return (
-      <div className="screen" aria-busy="true" aria-label="Загрузка">
-        <div className="skeleton topbar-sk" />
-        <div className="skeleton tabs-sk" />
-        {[0, 1, 2].map((i) => (
+      <div className="skeleton-screen" aria-busy="true" aria-label="Загрузка">
+        <div className="skeleton bar-sk" />
+        <div className="skeleton pill-sk" />
+        <div className="skeleton hero-sk" />
+        {[0, 1].map((i) => (
           <div key={i} className="skeleton card-sk" style={{ animationDelay: `${i * 0.12}s` }} />
         ))}
       </div>
@@ -176,115 +175,126 @@ export default function App() {
         <p className="muted">Это приложение доступно только для двух участников.</p>
       </div>
     );
-  if (state === 'error' || !me)
+  if (state === 'error' || !me || !settings)
     return (
       <div className="center">
         <p>Не удалось загрузить данные</p>
-        <button className="primary" onClick={() => { setState('loading'); load(true); }}>Повторить</button>
+        <button
+          className="primary narrow"
+          onClick={() => {
+            setState('loading');
+            load(true);
+          }}
+        >
+          Повторить
+        </button>
       </div>
     );
 
   const partner = users.find((u) => u.id !== me.id);
-  const current = view.name !== 'list' && 'taskId' in view && view.taskId ? tasks.find((t) => t.id === view.taskId) : undefined;
+  const current = overlay && 'taskId' in overlay && overlay.taskId ? tasks.find((t) => t.id === overlay.taskId) : undefined;
+  const refresh = () => load();
 
+  const openTask = (t: Task) => setOverlay({ name: 'detail', taskId: t.id });
+
+  // ----- содержимое -----
+  let title = TITLES[tab];
   let content: React.ReactNode;
-  if (view.name === 'settings' && settings) {
-    content = <SettingsScreen settings={settings} onChange={setSettings} onError={showError} />;
-  } else if (view.name === 'form') {
+  let right: React.ReactNode;
+  let fullBleed = false;
+
+  if (overlay?.name === 'form') {
+    title = current ? 'Редактирование' : 'Новая задача';
     content = (
       <TaskForm
+        key={current?.id ?? 'new'}
         task={current}
         me={me}
         partner={partner}
         onSaved={(t) => {
           upsert(t);
-          setView({ name: 'detail', taskId: t.id });
+          setOverlay({ name: 'detail', taskId: t.id });
         }}
       />
     );
-  } else if (view.name === 'detail' && current) {
+  } else if (overlay?.name === 'detail' && current) {
+    title = 'Задача';
     content = (
       <TaskDetail
         task={current}
         users={users}
         meId={me.id}
+        onEdit={() => setOverlay({ name: 'form', taskId: current.id })}
+        onDelete={() => remove(current)}
+        onTake={() => take(current)}
+        onComplete={() => setCompleting(current)}
+        onReopen={() => changeStatus(current, 'in_progress').catch(() => {})}
         onComment={(text) => addComment(current, text)}
         onDeleteComment={(cid) => deleteComment(current, cid)}
-        onEdit={() => setView({ name: 'form', taskId: current.id })}
-        onDelete={() => remove(current)}
-        onToggle={() => toggle(current)}
       />
     );
+  } else if (overlay?.name === 'notifications') {
+    title = 'Уведомления';
+    content = <NotificationsScreen items={notes.items} onOpenTask={(id) => setOverlay({ name: 'detail', taskId: id })} />;
   } else {
-    const count = (s: 'new' | 'done') => filtered.filter((t) => t.status === s).length;
-    const filterActive = who !== 'all' || onlyHigh;
-    content = (
-      <div className="screen" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-        <div className="ptr" style={{ height: refreshing ? 36 : pull }}>
-          {(refreshing || pull > 0) && <span className={refreshing ? 'spin' : ''}>{refreshing ? '⟳' : pull >= PULL / 2 + 5 ? 'Отпустите' : '↓'}</span>}
-        </div>
-        <header className="topbar">
-          <div>
-            <div className="hello">Привет, {me.first_name} 👋</div>
-            <div className="muted">
-              {tasks.filter((t) => t.status === 'new').length === 0
-                ? 'Все задачи выполнены'
-                : `Активных задач: ${tasks.filter((t) => t.status === 'new').length}`}
-            </div>
-          </div>
-          <button className="icon-btn" aria-label="Настройки уведомлений" onClick={() => setView({ name: 'settings' })}>
-            🔔
-          </button>
-        </header>
-        <div className="tabs">
-          <button className={tab === 'new' ? 'active' : ''} onClick={() => setTab('new')}>
-            Новые задачи <span className="badge">{count('new')}</span>
-          </button>
-          <button className={tab === 'done' ? 'active' : ''} onClick={() => setTab('done')}>
-            Завершённые <span className="badge">{count('done')}</span>
-          </button>
-        </div>
-        <div className="filters">
-          {([['all', 'Все'], ['me', 'Мои'], ['partner', partner?.first_name ?? 'Партнёр']] as const).map(([k, label]) => (
-            <button key={k} className={'fchip' + (who === k ? ' active' : '')} onClick={() => setWho(k)}>
-              {label}
-            </button>
-          ))}
-          <button className={'fchip' + (onlyHigh ? ' active' : '')} onClick={() => setOnlyHigh(!onlyHigh)}>
-            🔥 Важные
-          </button>
-        </div>
-        {visible.length === 0 ? (
-          <div className="empty">
-            <div className="empty-icon">{filterActive ? '🔎' : tab === 'new' ? '🎉' : '📭'}</div>
-            <div className="empty-title">
-              {filterActive ? 'Ничего не найдено' : tab === 'new' ? 'Новых задач нет' : 'Пока ничего не завершено'}
-            </div>
-            <div className="muted">
-              {filterActive
-                ? 'Попробуйте сменить фильтр'
-                : tab === 'new'
-                  ? 'Нажмите «＋», чтобы добавить задачу'
-                  : 'Выполненные задачи появятся здесь'}
-            </div>
-          </div>
-        ) : (
-          visible.map((t) => (
-            <TaskCard key={t.id} task={t} users={users} onOpen={() => setView({ name: 'detail', taskId: t.id })} onToggle={() => toggle(t)} />
-          ))
-        )}
-        <button className="fab" aria-label="Новая задача" onClick={() => setView({ name: 'form' })}>＋</button>
-      </div>
-    );
+    if (tab === 'home') {
+      right = <BellButton unread={notes.unread} onClick={openNotifications} />;
+      content = (
+        <Home
+          tasks={tasks}
+          users={users}
+          onOpen={openTask}
+          onTake={take}
+          onComplete={setCompleting}
+          onAll={() => setTab('tasks')}
+          onRefresh={refresh}
+        />
+      );
+    } else if (tab === 'tasks') {
+      content = (
+        <TasksScreen
+          tasks={tasks}
+          users={users}
+          meId={me.id}
+          tab={taskTab}
+          onTab={setTaskTab}
+          onOpen={openTask}
+          onTake={take}
+          onComplete={setCompleting}
+          onNew={() => setOverlay({ name: 'form' })}
+          onRefresh={refresh}
+        />
+      );
+    } else if (tab === 'map') {
+      fullBleed = true;
+      content = <MapScreen tasks={tasks} onOpen={openTask} />;
+    } else if (tab === 'chat') {
+      content = (
+        <ChatScreen
+          tasks={tasks}
+          users={users}
+          meId={me.id}
+          taskId={chatTaskId}
+          onTaskId={setChatTaskId}
+          onSend={(t, text) => addComment(t, text)}
+        />
+      );
+    } else {
+      content = <SettingsScreen settings={settings} onChange={setSettings} onError={showError} />;
+    }
   }
 
+  const showNav = !overlay;
+
   return (
-    <>
-      {view.name !== 'list' && !inTelegram() && (
-        <button className="back" onClick={back}>← Назад</button>
+    <div className={'app' + (fullBleed && !overlay ? ' bleed' : '')}>
+      {!(fullBleed && !overlay) && (
+        <TopBar title={title} onBack={overlay && !inTelegram() ? back : undefined} right={right} />
       )}
-      {content}
-      {toast && <div className="toast">{toast}</div>}
-    </>
+      <main className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '')}>{content}</main>
+      {showNav && <BottomNav tab={tab} onChange={setTab} />}
+      {completing && <CompleteSheet task={completing} onConfirm={confirmComplete} onClose={() => setCompleting(null)} />}
+      {toast && <div className="toast" role="status">{toast}</div>}
+    </div>
   );
 }

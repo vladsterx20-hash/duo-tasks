@@ -1,5 +1,5 @@
 import WebApp from '@twa-dev/sdk';
-import type { Settings, Task, User } from './types';
+import type { AppNotification, GeoResult, Settings, Status, Task, User } from './types';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -32,8 +32,13 @@ export const api = {
   tasks: () => req<Task[]>('/tasks'),
   create: (fd: FormData) => req<Task>('/tasks', { method: 'POST', body: fd }),
   update: (id: number, fd: FormData) => req<Task>(`/tasks/${id}`, { method: 'PATCH', body: fd }),
-  setStatus: (id: number, status: 'new' | 'done') => req<Task>(`/tasks/${id}/status`, json('POST', { status })),
+  setStatus: (id: number, status: Status, profit?: number) =>
+    req<Task>(`/tasks/${id}/status`, json('POST', { status, profit })),
   addComment: (id: number, text: string) => req<Task>(`/tasks/${id}/comments`, json('POST', { text })),
   deleteComment: (id: number, cid: number) => req<Task>(`/tasks/${id}/comments/${cid}`, { method: 'DELETE' }),
   remove: (id: number) => req<{ ok: true }>(`/tasks/${id}`, { method: 'DELETE' }),
+  notifications: () => req<{ items: AppNotification[]; unread: number }>('/notifications'),
+  readNotifications: () => req<{ ok: true }>('/notifications/read', { method: 'POST' }),
+  geocode: (q: string, signal?: AbortSignal) => req<GeoResult[]>(`/geocode?q=${encodeURIComponent(q)}`, { signal }),
+  reverse: (lat: number, lng: number) => req<{ label: string } | null>(`/reverse?lat=${lat}&lng=${lng}`),
 };

@@ -3,7 +3,10 @@ import WebApp from '@twa-dev/sdk';
 import { api } from '../api';
 import { PRIORITY_LABEL } from '../types';
 import type { AssigneeChoice, Attachment, Priority, Task, User } from '../types';
-import { fmtSize, haptic, inTelegram, toLocalInput } from '../utils';
+import { cleanMoney, fmtMoney, fmtSize, haptic, inTelegram, toLocalInput, toNum } from '../utils';
+import { AddressField, type AddressValue } from './AddressField';
+import { Icon } from './Icon';
+import { MapPicker } from './MapPicker';
 
 const MAX = 20 * 1024 * 1024;
 
@@ -21,16 +24,28 @@ function initialChoice(task: Task | undefined, me: User): AssigneeChoice {
 }
 
 export function TaskForm({ task, me, partner, onSaved }: Props) {
+  const initialDue = toLocalInput(task?.due_at ?? null);
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
-  const [due, setDue] = useState(toLocalInput(task?.due_at ?? null));
+  const [date, setDate] = useState(initialDue.slice(0, 10));
+  const [time, setTime] = useState(initialDue.slice(11, 16));
+  const [addr, setAddr] = useState<AddressValue>({
+    address: task?.address ?? '',
+    lat: task?.lat ?? null,
+    lng: task?.lng ?? null,
+  });
+  const [picker, setPicker] = useState(false);
   const [assignee, setAssignee] = useState<AssigneeChoice>(initialChoice(task, me));
   const [priority, setPriority] = useState<Priority>(task?.priority ?? 'normal');
+  const [price, setPrice] = useState(task && task.price ? String(task.price) : '');
+  const [cost, setCost] = useState(task && task.cost ? String(task.cost) : '');
   const [files, setFiles] = useState<File[]>([]);
   const [existing, setExisting] = useState<Attachment[]>(task?.attachments ?? []);
   const [removed, setRemoved] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const profit = Math.round((toNum(price) - toNum(cost)) * 100) / 100;
 
   const previews = useMemo(
     () => files.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : null)),
@@ -50,7 +65,7 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
 
   async function submit() {
     if (busy) return;
-    if (!title.trim()) return setError('Введите заголовок');
+    if (!title.trim()) return setError('Введите название');
     setBusy(true);
     setError('');
     if (inTelegram()) WebApp.MainButton.showProgress();
@@ -58,9 +73,15 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
       const fd = new FormData();
       fd.set('title', title.trim());
       fd.set('description', description);
-      fd.set('due_at', due ? new Date(due).toISOString() : '');
+      // Если указана дата без времени — берём 18:00
+      fd.set('due_at', date ? new Date(`${date}T${time || '18:00'}`).toISOString() : '');
       fd.set('assignee', assignee);
       fd.set('priority', priority);
+      fd.set('price', String(toNum(price)));
+      fd.set('cost', String(toNum(cost)));
+      fd.set('address', addr.address.trim());
+      fd.set('lat', addr.lat === null ? '' : String(addr.lat));
+      fd.set('lng', addr.lng === null ? '' : String(addr.lng));
       files.forEach((f) => fd.append('files', f));
       let saved: Task;
       if (task) {
@@ -86,6 +107,8 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
     const mb = WebApp.MainButton;
     const handler = () => submitRef.current();
     mb.setText(task ? 'Сохранить' : 'Создать');
+    mb.color = '#FF5A00';
+    mb.textColor = '#111111';
     mb.onClick(handler);
     mb.show();
     return () => {
@@ -102,20 +125,37 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
   ];
 
   return (
-    <div className="screen form">
-      <h1>{task ? 'Редактирование' : 'Новая задача'}</h1>
+    <div className="form">
+      <label className="field-label" htmlFor="f-title">Название</label>
+      <input
+        id="f-title"
+        className="field"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Название задачи"
+        maxLength={200}
+        autoFocus={!task}
+      />
 
-      <label>Заголовок *</label>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Что нужно сделать?" maxLength={200} autoFocus={!task} />
+      <label className="field-label" htmlFor="f-desc">Описание</label>
+      <textarea id="f-desc" className="field" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Описание" />
 
-      <label>Описание</label>
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Подробности" />
+      <div className="two-cols">
+        <div>
+          <label className="field-label" htmlFor="f-date">Срок</label>
+          <input id="f-date" className="field" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="f-time">Время</label>
+          <input id="f-time" className="field" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </div>
+      </div>
 
-      <label>Срок выполнения</label>
-      <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
+      <label className="field-label">Адрес</label>
+      <AddressField value={addr} onChange={setAddr} onPickOnMap={() => setPicker(true)} />
 
-      <label>Исполнитель</label>
-      <div className="segmented">
+      <label className="field-label">Исполнитель</label>
+      <div className="seg-pill small">
         {choices.map(([k, name]) => (
           <button key={k} type="button" className={assignee === k ? 'active' : ''} onClick={() => setAssignee(k)}>
             {name}
@@ -123,17 +163,17 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
         ))}
       </div>
 
-      <label>Приоритет</label>
-      <div className="segmented">
+      <label className="field-label">Приоритет</label>
+      <div className="seg-pill small">
         {(['low', 'normal', 'high'] as Priority[]).map((p) => (
-          <button key={p} type="button" className={(priority === p ? 'active ' : '') + 'p-' + p} onClick={() => setPriority(p)}>
+          <button key={p} type="button" className={priority === p ? 'active' : ''} onClick={() => setPriority(p)}>
             {p === 'high' ? '🔥 ' : ''}
             {PRIORITY_LABEL[p]}
           </button>
         ))}
       </div>
 
-      <label>Файлы (до 20 МБ каждый)</label>
+      <label className="field-label">Файлы (до 20 МБ каждый)</label>
       <div className="files">
         {existing.map((a) => (
           <div className="file-item" key={a.id}>
@@ -149,7 +189,7 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
                 setRemoved([...removed, a.id]);
               }}
             >
-              ✕
+              <Icon name="x" size={16} />
             </button>
           </div>
         ))}
@@ -159,12 +199,12 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
             <span className="file-name">{f.name}</span>
             <span className="muted">{fmtSize(f.size)}</span>
             <button type="button" className="x" aria-label="Убрать файл" onClick={() => setFiles(files.filter((_, j) => j !== i))}>
-              ✕
+              <Icon name="x" size={16} />
             </button>
           </div>
         ))}
-        <label className="add-file">
-          ＋ Прикрепить файл
+        <label className="field add-file">
+          + Прикрепить
           <input
             type="file"
             multiple
@@ -177,11 +217,37 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
         </label>
       </div>
 
-      {error && <div className="error">{error}</div>}
+      <div className="two-cols">
+        <div>
+          <label className="field-label" htmlFor="f-price">Стоимость, ₽</label>
+          <input id="f-price" className="field" inputMode="decimal" value={price} onChange={(e) => setPrice(cleanMoney(e.target.value))} placeholder="Для клиента" />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="f-cost">Себестоимость, ₽</label>
+          <input id="f-cost" className="field" inputMode="decimal" value={cost} onChange={(e) => setCost(cleanMoney(e.target.value))} placeholder="Затраты" />
+        </div>
+      </div>
+      <div className="profit-row">
+        <b>Прибыль</b>
+        <b className={'profit-val' + (profit < 0 ? ' neg' : '')}>{price || cost ? fmtMoney(profit) : '[авто] ₽'}</b>
+      </div>
+
+      {error && <div className="error" role="alert">{error}</div>}
       {!inTelegram() && (
         <button className="primary" onClick={submit} disabled={busy}>
           {busy ? 'Сохранение…' : task ? 'Сохранить' : 'Создать'}
         </button>
+      )}
+
+      {picker && (
+        <MapPicker
+          initial={addr.lat !== null && addr.lng !== null ? { lat: addr.lat, lng: addr.lng } : null}
+          onCancel={() => setPicker(false)}
+          onDone={(v) => {
+            setAddr({ address: addr.address.trim() ? addr.address : v.address, lat: v.lat, lng: v.lng });
+            setPicker(false);
+          }}
+        />
       )}
     </div>
   );

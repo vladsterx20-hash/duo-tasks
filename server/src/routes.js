@@ -3,7 +3,8 @@ import multer from 'multer';
 import { pool } from './db.js';
 import { auth, fileToken } from './auth.js';
 import { ALLOWED, MAX_FILE } from './config.js';
-import { notifyAssigned, notifyDone, notifyComment } from './bot.js';
+import { notifyAssigned, notifyTaken, notifyDone, notifyComment } from './bot.js';
+import { geocode, reverseGeocode } from './geo.js';
 
 export const api = express.Router();
 
@@ -36,11 +37,12 @@ api.use(auth);
 
 // ---------- helpers ----------
 const PRIORITIES = ['low', 'normal', 'high'];
+const STATUSES = ['new', 'in_progress', 'done'];
 const validPriority = (v) => (PRIORITIES.includes(v) ? v : undefined);
 
 const SELECT = `
   select t.id, t.title, t.description, t.due_at, t.status, t.priority, t.author_id, t.assignee_id,
-         t.created_at, t.completed_at,
+         t.created_at, t.completed_at, t.price, t.cost, t.profit, t.address, t.lat, t.lng, t.taken_by,
          coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
                    order by a.id) from attachments a where a.task_id = t.id), '[]'::json) as attachments,
          coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
@@ -73,6 +75,22 @@ function parseDue(v) {
   return isNaN(d) ? undefined : d;
 }
 
+/** Деньги: число ≥ 0 (до 1 млрд), 2 знака. undefined = поле не передано, null = неверное значение. */
+function parseMoney(v) {
+  if (v === undefined) return undefined;
+  if (v === '' || v === null) return 0;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 && n <= 1e9 ? Math.round(n * 100) / 100 : null;
+}
+
+/** Координата: undefined = не передано, '' = сброс (null), иначе число в пределах ±max; NaN = ошибка. */
+function parseCoord(v, max) {
+  if (v === undefined) return undefined;
+  if (v === '' || v === null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && Math.abs(n) <= max ? n : NaN;
+}
+
 async function saveFiles(client, taskId, files = []) {
   for (const f of files) {
     await client.query(
@@ -97,7 +115,33 @@ async function tx(fn) {
   }
 }
 
-// ---------- API ----------
+/** Уведомление внутри приложения (колокольчик). Telegram-push отправляется отдельно через bot.js. */
+async function record(userId, kind, taskId, text) {
+  try {
+    await pool.query('insert into notifications (user_id, kind, task_id, text) values ($1,$2,$3,$4)', [
+      userId,
+      kind,
+      taskId,
+      text.slice(0, 400),
+    ]);
+  } catch (e) {
+    console.error('notifications:', e.message);
+  }
+}
+
+// ---------- настройки ----------
+const REMIND_CHOICES = [5, 10, 15, 30, 60, 120, 1440];
+const SETTING_FLAGS = ['n_assigned', 'n_taken', 'n_done', 'n_comment', 'n_remind'];
+const THEMES = ['dark', 'light'];
+
+async function getSettings(userId) {
+  const { rows } = await pool.query(
+    'select remind_minutes, n_assigned, n_taken, n_done, n_comment, n_remind, theme from users where id=$1',
+    [userId]
+  );
+  return rows[0];
+}
+
 api.get(
   '/me',
   wrap(async (req, res) => {
@@ -108,17 +152,6 @@ api.get(
   })
 );
 
-const REMIND_CHOICES = [5, 10, 15, 30, 60, 120, 1440];
-const SETTING_FLAGS = ['n_assigned', 'n_done', 'n_comment', 'n_remind'];
-
-async function getSettings(userId) {
-  const { rows } = await pool.query(
-    'select remind_minutes, n_assigned, n_done, n_comment, n_remind from users where id=$1',
-    [userId]
-  );
-  return rows[0];
-}
-
 api.put(
   '/settings',
   wrap(async (req, res) => {
@@ -126,9 +159,11 @@ api.put(
     const next = { ...cur };
     for (const f of SETTING_FLAGS) if (typeof req.body[f] === 'boolean') next[f] = req.body[f];
     if (REMIND_CHOICES.includes(Number(req.body.remind_minutes))) next.remind_minutes = Number(req.body.remind_minutes);
+    if (THEMES.includes(req.body.theme)) next.theme = req.body.theme;
     await pool.query(
-      `update users set remind_minutes=$2, n_assigned=$3, n_done=$4, n_comment=$5, n_remind=$6 where id=$1`,
-      [req.user.id, next.remind_minutes, next.n_assigned, next.n_done, next.n_comment, next.n_remind]
+      `update users set remind_minutes=$2, n_assigned=$3, n_taken=$4, n_done=$5, n_comment=$6, n_remind=$7, theme=$8
+       where id=$1`,
+      [req.user.id, next.remind_minutes, next.n_assigned, next.n_taken, next.n_done, next.n_comment, next.n_remind, next.theme]
     );
     // Если сменили порог напоминания, пусть напоминания для будущих задач сработают заново
     if (next.remind_minutes !== cur.remind_minutes)
@@ -140,26 +175,118 @@ api.put(
   })
 );
 
+// ---------- адреса (OpenStreetMap Nominatim через сервер) ----------
+api.get(
+  '/geocode',
+  wrap(async (req, res) => {
+    const q = String(req.query.q || '').trim();
+    if (q.length < 3 || q.length > 200) return res.json([]);
+    try {
+      res.json(await geocode(q));
+    } catch (e) {
+      res.status(e.status === 429 ? 429 : 502).json({ error: 'Сервис адресов временно недоступен' });
+    }
+  })
+);
+
+api.get(
+  '/reverse',
+  wrap(async (req, res) => {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+      return res.status(400).json({ error: 'Неверные координаты' });
+    try {
+      res.json(await reverseGeocode(lat, lng));
+    } catch (e) {
+      res.status(e.status === 429 ? 429 : 502).json({ error: 'Сервис адресов временно недоступен' });
+    }
+  })
+);
+
+// ---------- уведомления внутри приложения ----------
+api.get(
+  '/notifications',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      'select id, kind, task_id, text, read, created_at from notifications where user_id=$1 order by id desc limit 50',
+      [req.user.id]
+    );
+    const { rows: c } = await pool.query('select count(*)::int as n from notifications where user_id=$1 and not read', [
+      req.user.id,
+    ]);
+    res.json({ items: rows, unread: c[0].n });
+  })
+);
+
+api.post(
+  '/notifications/read',
+  wrap(async (req, res) => {
+    await pool.query('update notifications set read=true where user_id=$1 and not read', [req.user.id]);
+    res.json({ ok: true });
+  })
+);
+
+// ---------- задачи ----------
 api.get(
   '/tasks',
   wrap(async (_req, res) => res.json(await fetchTasks()))
 );
 
+/** Общая валидация полей, которые есть и при создании, и при правке. Возвращает { error } или { fields }. */
+function readCommon(b, before) {
+  const out = {};
+  const price = parseMoney(b.price);
+  if (price === null) return { error: 'Неверная стоимость' };
+  const cost = parseMoney(b.cost);
+  if (cost === null) return { error: 'Неверная себестоимость' };
+  out.price = price ?? before?.price ?? 0;
+  out.cost = cost ?? before?.cost ?? 0;
+
+  out.address = b.address !== undefined ? String(b.address).trim().slice(0, 300) : before?.address ?? '';
+
+  const lat = parseCoord(b.lat, 90);
+  const lng = parseCoord(b.lng, 180);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return { error: 'Неверные координаты' };
+  let la = lat === undefined ? before?.lat ?? null : lat;
+  let ln = lng === undefined ? before?.lng ?? null : lng;
+  if (la === null || ln === null) la = ln = null; // координаты только парой
+  out.lat = la;
+  out.lng = ln;
+  return { fields: out };
+}
+
 api.post(
   '/tasks',
   upload.array('files', 10),
   wrap(async (req, res) => {
-    const title = (req.body.title || '').trim();
+    const b = req.body;
+    const title = (b.title || '').trim();
     if (!title) return res.status(400).json({ error: 'Введите заголовок' });
-    const assignee = resolveAssignee(req.body.assignee || 'me', req.user.id);
+    const assignee = resolveAssignee(b.assignee || 'me', req.user.id);
     if (!assignee) return res.status(400).json({ error: 'Неверный исполнитель' });
-    const due = parseDue(req.body.due_at);
+    const due = parseDue(b.due_at);
+    const common = readCommon(b, null);
+    if (common.error) return res.status(400).json({ error: common.error });
+    const f = common.fields;
 
     const id = await tx(async (c) => {
       const { rows } = await c.query(
-        `insert into tasks (title, description, due_at, author_id, assignee_id, priority)
-         values ($1,$2,$3,$4,$5,$6) returning id`,
-        [title, req.body.description || '', due ?? null, req.user.id, assignee.id, validPriority(req.body.priority) ?? 'normal']
+        `insert into tasks (title, description, due_at, author_id, assignee_id, priority, price, cost, address, lat, lng)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+        [
+          title,
+          b.description || '',
+          due ?? null,
+          req.user.id,
+          assignee.id,
+          validPriority(b.priority) ?? 'normal',
+          f.price,
+          f.cost,
+          f.address,
+          f.lat,
+          f.lng,
+        ]
       );
       await saveFiles(c, rows[0].id, req.files);
       return rows[0].id;
@@ -167,7 +294,9 @@ api.post(
 
     const [task] = await fetchTasks(id);
     res.json(task);
-    if (includesPartner(task.assignee_id, req.user.id)) notifyAssigned(partnerOf(req.user.id), req.user.first_name, task);
+    const partner = partnerOf(req.user.id);
+    record(partner, 'assigned', task.id, `${req.user.first_name} создал(а) задачу «${task.title}»`);
+    if (includesPartner(task.assignee_id, req.user.id)) notifyAssigned(partner, req.user.first_name, task);
   })
 );
 
@@ -185,7 +314,11 @@ api.patch(
     const assignee = b.assignee ? resolveAssignee(b.assignee, req.user.id) : { id: before.assignee_id };
     if (!assignee) return res.status(400).json({ error: 'Неверный исполнитель' });
     const due = parseDue(b.due_at);
-    const dueChanged = due !== undefined && String(due?.toISOString() ?? null) !== String(before.due_at?.toISOString?.() ?? null);
+    const dueChanged =
+      due !== undefined && String(due?.toISOString() ?? null) !== String(before.due_at?.toISOString?.() ?? null);
+    const common = readCommon(b, before);
+    if (common.error) return res.status(400).json({ error: common.error });
+    const f = common.fields;
     let removeIds = [];
     try {
       removeIds = JSON.parse(b.removeIds || '[]').map(Number);
@@ -193,17 +326,20 @@ api.patch(
 
     await tx(async (c) => {
       await c.query(
-        `update tasks set title=$2, description=$3, due_at=$4, assignee_id=$5, priority=$7,
-           reminded = case when $6 then false else reminded end where id=$1`,
-        // (reminded оставлен для совместимости; актуальные напоминания хранятся в reminders_sent)
+        `update tasks set title=$2, description=$3, due_at=$4, assignee_id=$5, priority=$6,
+           price=$7, cost=$8, address=$9, lat=$10, lng=$11 where id=$1`,
         [
           id,
           title,
           b.description ?? before.description,
           due === undefined ? before.due_at : due,
           assignee.id,
-          dueChanged,
           validPriority(b.priority) ?? before.priority,
+          f.price,
+          f.cost,
+          f.address,
+          f.lat,
+          f.lng,
         ]
       );
       if (dueChanged) await c.query('delete from reminders_sent where task_id=$1', [id]);
@@ -223,18 +359,39 @@ api.post(
   '/tasks/:id/status',
   wrap(async (req, res) => {
     const id = Number(req.params.id);
-    const done = req.body.status === 'done';
+    const status = req.body.status;
+    if (!STATUSES.includes(status)) return res.status(400).json({ error: 'Неверный статус' });
     const [before] = await fetchTasks(id);
     if (!before) return res.status(404).json({ error: 'Задача не найдена' });
+
+    // Прибыль фиксируется при завершении: переданная сумма или «стоимость − себестоимость»
+    let profit = null;
+    if (status === 'done') {
+      const given = req.body.profit === undefined || req.body.profit === '' ? NaN : Number(req.body.profit);
+      profit = Number.isFinite(given) && Math.abs(given) <= 1e9 ? Math.round(given * 100) / 100 : before.price - before.cost;
+    }
+
     await pool.query(
-      `update tasks set status=$2, completed_at = case when $2='done' then now() else null end,
-         reminded = case when $2='done' then reminded else false end where id=$1`,
-      [id, done ? 'done' : 'new']
+      `update tasks set status=$2, profit=$3,
+         completed_at = case when $2='done' then now() else null end,
+         taken_by = case when $2='in_progress' then $4::bigint else taken_by end
+       where id=$1`,
+      [id, status, profit, req.user.id]
     );
-    if (!done) await pool.query('delete from reminders_sent where task_id=$1', [id]);
+    if (before.status === 'done' && status !== 'done') await pool.query('delete from reminders_sent where task_id=$1', [id]);
+
     const [task] = await fetchTasks(id);
     res.json(task);
-    if (done && before.status !== 'done') notifyDone(partnerOf(req.user.id), req.user.first_name, task);
+
+    const partner = partnerOf(req.user.id);
+    const name = req.user.first_name;
+    if (status === 'in_progress' && before.status === 'new') {
+      record(partner, 'taken', id, `${name} взял(а) в работу «${task.title}»`);
+      notifyTaken(partner, name, task);
+    } else if (status === 'done' && before.status !== 'done') {
+      record(partner, 'done', id, `${name} выполнил(а) «${task.title}»`);
+      notifyDone(partner, name, task);
+    }
   })
 );
 
@@ -249,7 +406,9 @@ api.post(
     await pool.query('insert into comments (task_id, author_id, text) values ($1,$2,$3)', [id, req.user.id, text]);
     const [task] = await fetchTasks(id);
     res.json(task);
-    notifyComment(partnerOf(req.user.id), req.user.first_name, task, text);
+    const partner = partnerOf(req.user.id);
+    record(partner, 'comment', id, `${req.user.first_name} · «${task.title}»: ${text}`);
+    notifyComment(partner, req.user.first_name, task, text);
   })
 );
 

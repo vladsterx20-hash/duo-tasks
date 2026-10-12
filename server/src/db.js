@@ -2,6 +2,7 @@ import pg from 'pg';
 import { ALLOWED } from './config.js';
 
 pg.types.setTypeParser(20, Number); // bigint -> number (Telegram ID помещаются в 2^53)
+pg.types.setTypeParser(1700, parseFloat); // numeric (деньги) -> number
 
 export const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -50,6 +51,28 @@ export async function initDb() {
     alter table users add column if not exists n_done boolean not null default true;
     alter table users add column if not exists n_comment boolean not null default true;
     alter table users add column if not exists n_remind boolean not null default true;
+    -- v3: статус «в работу», деньги, адрес с координатами, тема, уведомления внутри приложения
+    alter table tasks drop constraint if exists tasks_status_check;
+    alter table tasks add constraint tasks_status_check check (status in ('new','in_progress','done'));
+    alter table tasks add column if not exists price numeric(14,2) not null default 0;
+    alter table tasks add column if not exists cost numeric(14,2) not null default 0;
+    alter table tasks add column if not exists profit numeric(14,2);
+    alter table tasks add column if not exists address text not null default '';
+    alter table tasks add column if not exists lat double precision;
+    alter table tasks add column if not exists lng double precision;
+    alter table tasks add column if not exists taken_by bigint references users(id);
+    alter table users add column if not exists theme text not null default 'dark';
+    alter table users add column if not exists n_taken boolean not null default true;
+    create table if not exists notifications (
+      id serial primary key,
+      user_id bigint not null references users(id),
+      kind text not null,
+      task_id int references tasks(id) on delete set null,
+      text text not null,
+      read boolean not null default false,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists notifications_user_idx on notifications(user_id, id desc);
     create table if not exists reminders_sent (
       task_id int not null references tasks(id) on delete cascade,
       user_id bigint not null references users(id),

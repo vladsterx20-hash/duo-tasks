@@ -15,7 +15,30 @@ export function fmtDue(iso: string | null): string {
   return d.toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-export const isOverdue = (t: Task) => t.status === 'new' && !!t.due_at && new Date(t.due_at).getTime() < Date.now();
+export const isOverdue = (t: Task) => t.status !== 'done' && !!t.due_at && new Date(t.due_at).getTime() < Date.now();
+
+export const fmtMoney = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) + ' ₽';
+
+/** Только цифры и одна точка, до 2 знаков после неё (отрицательных нет) */
+export function cleanMoney(s: string): string {
+  let out = s.replace(',', '.').replace(/[^0-9.]/g, '');
+  const i = out.indexOf('.');
+  if (i >= 0) out = out.slice(0, i + 1) + out.slice(i + 1).replace(/\./g, '');
+  return out.replace(/^(\d*\.\d{0,2}).*$/, '$1').slice(0, 12);
+}
+
+/** То же, но допускает ведущий минус (сумма прибыли при завершении) */
+export function cleanSignedMoney(s: string): string {
+  const neg = s.trim().startsWith('-');
+  return (neg ? '-' : '') + cleanMoney(s);
+}
+
+export const toNum = (s: string): number => {
+  const n = Number(s.replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+};
+
+export const statusLabel = { new: 'Новая', in_progress: 'В работе', done: 'Завершена' } as const;
 
 /** ISO -> значение для <input type="datetime-local"> в локальной зоне */
 export function toLocalInput(iso: string | null): string {
@@ -43,8 +66,13 @@ export const haptic = (kind: 'light' | 'success' = 'light') => {
   }
 };
 
-export function openFile(path: string) {
-  const url = location.origin + path;
+export function openUrl(url: string) {
   if (inTelegram()) WebApp.openLink(url);
   else window.open(url, '_blank');
 }
+
+export const openFile = (path: string) => openUrl(location.origin + path);
+
+/** Маршрут до точки (бесплатная ссылка, без ключей) */
+export const openRoute = (lat: number, lng: number) =>
+  openUrl(`https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`);

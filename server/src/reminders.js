@@ -10,7 +10,7 @@ async function tick() {
        select t.id, u.id
        from tasks t
        join users u on (t.assignee_id is null or t.assignee_id = u.id)
-       where t.status = 'new' and t.due_at is not null and u.n_remind
+       where t.status in ('new', 'in_progress') and t.due_at is not null and u.n_remind
          and t.due_at <= now() + make_interval(mins => u.remind_minutes)
          and t.due_at > now() - interval '1 hour'
        on conflict do nothing
