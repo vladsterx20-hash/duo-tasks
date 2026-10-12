@@ -359,7 +359,13 @@ function AppInner({ onReady }: { onReady: () => void }) {
   return (
     <div className={'app' + (fullBleed && !overlay ? ' bleed' : '')}>
       {!(fullBleed && !overlay) && (
-        <TopBar title={title} onBack={overlay ? back : undefined} right={right} stacked={!!overlay} />
+        <TopBar
+          title={title}
+          onBack={overlay ? back : undefined}
+          right={right}
+          stacked={!!overlay}
+          logo={!overlay && (tab === 'home' || tab === 'tasks' || tab === 'chat' || tab === 'settings')}
+        />
       )}
       <main className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '')}>{content}</main>
       {showNav && <BottomNav tab={tab} onChange={setTab} />}

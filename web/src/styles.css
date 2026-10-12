@@ -505,3 +505,5 @@ textarea.field { resize: vertical; display: block; }
 
 /* Фильтры (Все / Мои / имя / Важные) — по центру, под переключателем статусов; при нехватке места переносятся */
 .filters { justify-content: center; flex-wrap: wrap; overflow: visible; margin: 0 0 14px; padding: 0; }
+
+.topbar .logo { display: block; flex: none; border-radius: 13px; }

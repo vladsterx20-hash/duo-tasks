@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
+import { Logo } from './Logo';
 
 interface Props {
   title: string;
@@ -9,13 +10,17 @@ interface Props {
   right?: ReactNode;
   /** Вложенные экраны: сначала ряд кнопок, ниже по центру заголовок */
   stacked?: boolean;
+  /** Логотип в левом углу (когда нет кнопки «назад») */
+  logo?: boolean;
 }
 
-export function TopBar({ title, onBack, right, stacked }: Props) {
+export function TopBar({ title, onBack, right, stacked, logo }: Props) {
   const left = onBack ? (
     <button className="round-btn dark" onClick={onBack} aria-label="Назад">
       <Icon name="back" size={20} />
     </button>
+  ) : logo ? (
+    <Logo />
   ) : (
     <span className="slot" />
   );
