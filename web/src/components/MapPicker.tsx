@@ -19,6 +19,7 @@ export function MapPicker({ initial, onDone, onCancel }: Props) {
 
   useEffect(() => {
     const map = createMap(el.current!, initial ? [initial.lat, initial.lng] : DEFAULT_CENTER, initial ? 16 : 10);
+    L.control.zoom({ position: 'topright', zoomInTitle: 'Приблизить', zoomOutTitle: 'Отдалить' }).addTo(map);
     let marker: L.Marker | null = null;
     const place = (ll: L.LatLng) => {
       if (marker) marker.setLatLng(ll);

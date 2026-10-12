@@ -14,6 +14,7 @@ export type IconName =
   | 'x'
   | 'list'
   | 'locate'
+  | 'minus'
   | 'more'
   | 'edit'
   | 'trash'
@@ -87,6 +88,7 @@ const PATHS: Record<IconName, JSX.Element> = {
       <line x1="6" y1="6" x2="18" y2="18" />
     </>
   ),
+  minus: <line x1="5" y1="12" x2="19" y2="12" />,
   more: (
     <>
       <circle cx="5" cy="12" r="1.6" fill="currentColor" />

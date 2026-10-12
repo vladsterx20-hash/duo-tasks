@@ -94,6 +94,14 @@ export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) 
       <button className="locate-btn" onClick={goToMe} disabled={!located} aria-label="Где я">
         <Icon name="locate" size={20} />
       </button>
+      <div className="zoom-ctl" role="group" aria-label="Масштаб карты">
+        <button onClick={() => mapRef.current?.zoomIn()} aria-label="Приблизить карту">
+          <Icon name="plus" size={22} strokeWidth={2.5} />
+        </button>
+        <button onClick={() => mapRef.current?.zoomOut()} aria-label="Отдалить карту">
+          <Icon name="minus" size={22} strokeWidth={2.5} />
+        </button>
+      </div>
       {problem && !located && (
         <div className="geo-note" role="status">
           <span>
