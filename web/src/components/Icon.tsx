@@ -12,7 +12,8 @@ export type IconName =
   | 'send'
   | 'route'
   | 'x'
-  | 'list';
+  | 'list'
+  | 'locate';
 
 const PATHS: Record<IconName, JSX.Element> = {
   home: (
@@ -79,6 +80,16 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
+    </>
+  ),
+  locate: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <circle cx="12" cy="12" r="8" />
+      <line x1="12" y1="1" x2="12" y2="4" />
+      <line x1="12" y1="20" x2="12" y2="23" />
+      <line x1="1" y1="12" x2="4" y2="12" />
+      <line x1="20" y1="12" x2="23" y2="12" />
     </>
   ),
   list: (

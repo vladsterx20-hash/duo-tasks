@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { api } from '../api';
 import { createMap, DEFAULT_CENTER, pinIcon } from '../mapUtils';
+import { getPositionOnce } from '../geolocation';
 
 interface Props {
   initial: { lat: number; lng: number } | null;
@@ -32,7 +33,14 @@ export function MapPicker({ initial, onDone, onCancel }: Props) {
     };
     if (initial) place(L.latLng(initial.lat, initial.lng));
     map.on('click', (e: L.LeafletMouseEvent) => place(e.latlng));
+    // Метки ещё нет — открываем карту рядом с вами (если геолокация разрешена)
+    let alive = true;
+    if (!initial)
+      getPositionOnce().then((f) => {
+        if (alive && f) map.setView([f.lat, f.lng], 15);
+      });
     return () => {
+      alive = false;
       map.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

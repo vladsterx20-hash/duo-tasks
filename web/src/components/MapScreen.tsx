@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import type { Task } from '../types';
 import { fmtDue, openRoute } from '../utils';
-import { createMap, DEFAULT_CENTER, pinIcon } from '../mapUtils';
+import { createMap, DEFAULT_CENTER, meIcon, pinIcon } from '../mapUtils';
+import { canOpenLocationSettings, openLocationSettings, watchPosition, type GeoFix, type GeoProblem } from '../geolocation';
+import { Icon } from './Icon';
 
 export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void }) {
   const el = useRef<HTMLDivElement>(null);
@@ -44,9 +46,70 @@ export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) 
     }
   }, [pts, selId]);
 
+  // Моя геопозиция: следим, пока открыта карта; уходим с вкладки — слежение останавливается
+  const [problem, setProblem] = useState<GeoProblem | null>(null);
+  const [located, setLocated] = useState(false);
+  const fix = useRef<GeoFix | null>(null);
+  const dot = useRef<L.Marker | null>(null);
+  const circle = useRef<L.Circle | null>(null);
+
+  useEffect(() => {
+    const stop = watchPosition(
+      (f) => {
+        const map = mapRef.current;
+        if (!map) return;
+        const first = fix.current === null;
+        fix.current = f;
+        const ll = L.latLng(f.lat, f.lng);
+        if (!dot.current) {
+          dot.current = L.marker(ll, { icon: meIcon(), interactive: false, keyboard: false, zIndexOffset: -1000 }).addTo(map);
+          circle.current = L.circle(ll, { radius: f.accuracy, className: 'me-accuracy', interactive: false }).addTo(map);
+        } else {
+          dot.current.setLatLng(ll);
+          circle.current?.setLatLng(ll).setRadius(f.accuracy);
+        }
+        setProblem(null);
+        setLocated(true);
+        // Если на карте нет меток задач — сразу показываем, где вы
+        if (first && !fitted.current) map.setView(ll, 15);
+      },
+      (p) => setProblem(p)
+    );
+    return () => {
+      stop();
+      dot.current = null;
+      circle.current = null;
+      fix.current = null;
+    };
+  }, []);
+
+  function goToMe() {
+    const map = mapRef.current;
+    if (map && fix.current) map.setView([fix.current.lat, fix.current.lng], Math.max(map.getZoom(), 15), { animate: true });
+  }
+
   return (
     <div className="map-screen">
       <div ref={el} className="map" />
+      <button className="locate-btn" onClick={goToMe} disabled={!located} aria-label="Где я">
+        <Icon name="locate" size={20} />
+      </button>
+      {problem && !located && (
+        <div className="geo-note" role="status">
+          <span>
+            {problem === 'denied'
+              ? 'Нет доступа к геолокации. Разрешите её для Telegram в настройках телефона.'
+              : problem === 'unsupported'
+                ? 'Геолокация недоступна на этом устройстве.'
+                : 'Не удаётся определить, где вы. Проверьте, что включён GPS.'}
+          </span>
+          {problem === 'denied' && canOpenLocationSettings() && (
+            <button className="link-orange" onClick={openLocationSettings}>
+              Открыть настройки
+            </button>
+          )}
+        </div>
+      )}
       {pts.length === 0 && <div className="map-empty">Пока нет задач с адресом.<br />Укажите адрес при создании задачи.</div>}
       {selected && (
         <div className="map-card">

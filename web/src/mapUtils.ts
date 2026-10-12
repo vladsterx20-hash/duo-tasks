@@ -11,6 +11,15 @@ export function createMap(el: HTMLElement, center: [number, number], zoom: numbe
   return map;
 }
 
+/** Моя позиция: синяя точка с пульсирующим кольцом */
+export const meIcon = () =>
+  L.divIcon({
+    className: 'pin-wrap',
+    html: '<div class="me-dot"><span class="me-pulse"></span></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+
 /** Чёрная круглая метка с номером; выбранная — с оранжевой обводкой */
 export const pinIcon = (label: string, cls = '') =>
   L.divIcon({
