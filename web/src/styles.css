@@ -350,3 +350,11 @@ textarea.field { resize: vertical; display: block; }
 .upload-btn { min-height: 48px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: transform 0.12s var(--ease), opacity 0.15s; }
 .upload-btn:active { transform: scale(0.96); }
 .upload-btn.busy { opacity: 0.5; pointer-events: none; }
+
+/* ===== Карточка задачи: иерархия ===== */
+.detail { min-height: calc(100vh - 190px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: calc(100dvh - 190px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+.detail .sec { margin-top: 4px; }
+.detail .sec h3 { margin-top: 20px; }
+.desc { font-size: 15.5px; line-height: 1.5; padding: 16px 18px; }
+.comments-section { margin-top: auto; padding-top: 24px; }
+.comments-section h3 { margin-top: 0; }

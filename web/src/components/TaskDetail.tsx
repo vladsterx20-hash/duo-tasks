@@ -89,16 +89,15 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
         </div>
       )}
 
-      {task.description && <p className="desc">{task.description}</p>}
-
-      {(task.address || task.lat !== null) && (
-        <div className="info-card">
-          <div className="info-row">
-            <Icon name="map" size={18} />
-            <span>{task.address || 'Точка на карте'}</span>
-          </div>
-        </div>
-      )}
+      {/* Описание: заголовок раздела и тёмная подложка с текстом задачи */}
+      <section className="sec">
+        <h3>Описание</h3>
+        {task.description ? (
+          <p className="desc">{task.description}</p>
+        ) : (
+          <p className="desc muted">Описание не добавлено</p>
+        )}
+      </section>
 
       {(task.price > 0 || task.cost > 0 || task.profit !== null) && (
         <div className="info-card money">
@@ -142,6 +141,8 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
         </>
       )}
 
+      {/* Комментарии — в самом низу страницы */}
+      <section className="comments-section">
       <h3>Комментарии{task.comments.length > 0 ? ` · ${task.comments.length}` : ''}</h3>
       <div className="comments">
         {task.comments.length === 0 && <div className="muted">Пока нет комментариев</div>}
@@ -177,6 +178,7 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
           </button>
         </div>
       </div>
+      </section>
     </div>
   );
 }
