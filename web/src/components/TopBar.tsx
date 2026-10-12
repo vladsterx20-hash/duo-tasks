@@ -12,12 +12,18 @@ interface Props {
   stacked?: boolean;
   /** Логотип в левом углу (когда нет кнопки «назад») */
   logo?: boolean;
+  /** Если задано — логотип становится кнопкой */
+  onLogo?: () => void;
 }
 
-export function TopBar({ title, onBack, right, stacked, logo }: Props) {
+export function TopBar({ title, onBack, right, stacked, logo, onLogo }: Props) {
   const left = onBack ? (
     <button className="round-btn dark" onClick={onBack} aria-label="Назад">
       <Icon name="back" size={20} />
+    </button>
+  ) : logo && onLogo ? (
+    <button className="logo-btn" onClick={onLogo} aria-label="О приложении">
+      <Logo />
     </button>
   ) : logo ? (
     <Logo />

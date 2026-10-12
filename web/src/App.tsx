@@ -17,6 +17,7 @@ import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { CompleteSheet } from './components/CompleteSheet';
 import { Splash } from './components/Splash';
+import { About } from './components/About';
 
 type Overlay = null | { name: 'form'; taskId?: number } | { name: 'detail'; taskId: number } | { name: 'notifications' };
 
@@ -67,6 +68,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [completing, setCompleting] = useState<Task | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [chatTaskId, setChatTaskId] = useState<number | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
   const [toast, setToast] = useState('');
@@ -365,11 +367,13 @@ function AppInner({ onReady }: { onReady: () => void }) {
           right={right}
           stacked={!!overlay}
           logo={!overlay && (tab === 'home' || tab === 'tasks' || tab === 'chat' || tab === 'settings')}
+          onLogo={tab === 'home' ? () => { haptic(); setAboutOpen(true); } : undefined}
         />
       )}
       <main className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '')}>{content}</main>
       {showNav && <BottomNav tab={tab} onChange={setTab} />}
       {menuOpen && overlay?.name === 'detail' && current && <ActionMenu items={taskMenu(current)} onClose={() => setMenuOpen(false)} />}
+      {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
       {completing && <CompleteSheet task={completing} onConfirm={confirmComplete} onClose={() => setCompleting(null)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
