@@ -16,6 +16,12 @@ export type IconName =
   | 'locate'
   | 'minus'
   | 'camera'
+  | 'clock'
+  | 'flag'
+  | 'user'
+  | 'users'
+  | 'chevron'
+  | 'coin'
   | 'more'
   | 'edit'
   | 'trash'
@@ -87,6 +93,40 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </>
+  ),
+  flag: (
+    <>
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+      <line x1="4" y1="22" x2="4" y2="15" />
+    </>
+  ),
+  user: (
+    <>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </>
+  ),
+  users: (
+    <>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </>
+  ),
+  chevron: <polyline points="9 18 15 12 9 6" />,
+  coin: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 17V7h3.5a2.5 2.5 0 0 1 0 5H10" />
+      <line x1="8.5" y1="14" x2="14" y2="14" />
     </>
   ),
   camera: (

@@ -25,13 +25,14 @@ interface Props {
 export function Home({ tasks, users, onOpen, onTake, onComplete, onAll, onRefresh }: Props) {
   const [period, setPeriod] = useState<Period>('month');
 
-  // Прибыль — только по завершённым задачам, по дате завершения
-  const profit = useMemo(() => {
+  // Прибыль и «сделанные» — только завершённые задачи, по дате завершения в выбранном периоде
+  const { profit, doneCount } = useMemo(() => {
     const from = period === 'all' ? 0 : Date.now() - (period === 'week' ? 7 : 30) * DAY;
-    return tasks
-      .filter((t) => t.status === 'done' && t.completed_at && new Date(t.completed_at).getTime() >= from)
-      .reduce((sum, t) => sum + (t.profit ?? 0), 0);
+    const inPeriod = tasks.filter((t) => t.status === 'done' && t.completed_at && new Date(t.completed_at).getTime() >= from);
+    return { profit: inPeriod.reduce((s, t) => s + (t.profit ?? 0), 0), doneCount: inPeriod.length };
   }, [tasks, period]);
+
+  const activeCount = tasks.filter((t) => t.status !== 'done').length;
 
   const upcoming = useMemo(() => {
     const due = (t: Task) => (t.due_at ? new Date(t.due_at).getTime() : Infinity);
@@ -51,14 +52,24 @@ export function Home({ tasks, users, onOpen, onTake, onComplete, onAll, onRefres
         ))}
       </div>
 
-      <section className="profit-card" aria-label="Прибыль">
-        <div className="profit-label">Прибыль</div>
+      <section className="profit-card" aria-label="Прибыль с заказов">
+        <div className="profit-label">Прибыль с заказов</div>
         <div className="profit-sum">{fmtMoney(profit)}</div>
-        <div className="profit-hint">с завершённых задач</div>
       </section>
 
+      <div className="stats">
+        <div className="stat">
+          <div className="stat-label">Сделанные задачи</div>
+          <div className="stat-num">{doneCount}</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Активные задачи</div>
+          <div className="stat-num">{activeCount}</div>
+        </div>
+      </div>
+
       <div className="section-head">
-        <h2>Ближайшие задачи</h2>
+        <h2 className="caps">Ближайшие задачи</h2>
         <button className="link-orange" onClick={onAll}>
           Все
         </button>

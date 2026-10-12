@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PRIORITY_WEIGHT } from '../types';
 import type { Status, Task, User } from '../types';
-import { Icon } from './Icon';
 import { PullToRefresh } from './PullToRefresh';
 import { TaskCard } from './TaskCard';
 
@@ -20,11 +19,10 @@ interface Props {
   onOpen: (t: Task) => void;
   onTake: (t: Task) => void;
   onComplete: (t: Task) => void;
-  onNew: () => void;
   onRefresh: () => Promise<void>;
 }
 
-export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, onComplete, onNew, onRefresh }: Props) {
+export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, onComplete, onRefresh }: Props) {
   const [who, setWho] = useState<'all' | 'me' | 'partner'>('all');
   const [onlyHigh, setOnlyHigh] = useState(false);
   const partner = users.find((u) => u.id !== meId);
@@ -100,9 +98,6 @@ export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, on
           ))
         )}
       </PullToRefresh>
-      <button className="new-task-btn" onClick={onNew}>
-        <Icon name="plus" size={18} strokeWidth={3} /> Новая задача
-      </button>
     </>
   );
 }

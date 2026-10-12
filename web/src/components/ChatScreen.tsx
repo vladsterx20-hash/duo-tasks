@@ -11,12 +11,17 @@ interface Props {
   taskId: number | null;
   onTaskId: (id: number) => void;
   onSend: (task: Task, text: string) => Promise<void>;
+  onUpload: (task: Task, files: File[]) => Promise<void>;
 }
 
-export function ChatScreen({ tasks, users, meId, taskId, onTaskId, onSend }: Props) {
+const MAX_FILE = 20 * 1024 * 1024;
+
+export function ChatScreen({ tasks, users, meId, taskId, onTaskId, onSend, onUpload }: Props) {
   const [text, setText] = useState('');
   const [picking, setPicking] = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [note, setNote] = useState('');
   const feedEnd = useRef<HTMLDivElement>(null);
 
   // Если задача ещё не выбрана — берём ту, где последний комментарий, иначе самую свежую
@@ -47,17 +52,46 @@ export function ChatScreen({ tasks, users, meId, taskId, onTaskId, onSend }: Pro
     }
   }
 
+  async function attach(list: FileList | null) {
+    if (!list || !list.length || !task) return;
+    const files = Array.from(list);
+    const big = files.find((f) => f.size > MAX_FILE);
+    if (big) return setNote(`«${big.name}» больше 20 МБ`);
+    setNote('');
+    setUploading(true);
+    try {
+      await onUpload(task, files);
+      setNote('Файл прикреплён к задаче');
+      setTimeout(() => setNote(''), 2500);
+    } catch {
+      /* ошибка показана в App */
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <>
       <div className="chat">
         <button className="chat-task" onClick={() => setPicking(true)} disabled={tasks.length === 0}>
-          <span className="ellipsis">К задаче: {task ? task.title : 'нет задач'}</span>
+          <span className="chat-task-text">
+            <span className="dlabel">{task ? `К задаче №${task.id}` : 'Нет задач'}</span>
+            <b>{task ? task.title : 'Создайте задачу, чтобы писать комментарии'}</b>
+          </span>
           <span className="link-orange">Сменить</span>
         </button>
 
         <div className="chat-feed">
-          {!task && <div className="muted center-text">Создайте задачу, чтобы писать комментарии</div>}
-          {task && task.comments.length === 0 && <div className="muted center-text">Комментариев пока нет. Напишите первым.</div>}
+          {task && task.comments.length === 0 && (
+            <div className="chat-empty">
+              <Icon name="chat" size={30} />
+              <div>
+                Комментариев пока нет.
+                <br />
+                Напишите первым.
+              </div>
+            </div>
+          )}
           {task?.comments.map((c) => {
             const mine = c.author_id === meId;
             const u = users.find((x) => x.id === c.author_id);
@@ -71,12 +105,23 @@ export function ChatScreen({ tasks, users, meId, taskId, onTaskId, onSend }: Pro
           })}
           <div ref={feedEnd} />
         </div>
+        {note && <div className="muted center-text" role="status">{note}</div>}
       </div>
 
-      <div className="chat-input">
-        <button className="round-btn dark" aria-label="Выбрать задачу" onClick={() => setPicking(true)} disabled={tasks.length === 0}>
-          <Icon name="plus" size={18} strokeWidth={3} />
-        </button>
+      <div className="cbar above-nav">
+        <label className={'round-btn dark' + (uploading || !task ? ' busy' : '')} aria-label="Прикрепить фото или файл к задаче">
+          <Icon name="clip" size={20} />
+          <input
+            type="file"
+            multiple
+            hidden
+            disabled={uploading || !task}
+            onChange={(e) => {
+              attach(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </label>
         <input
           className="field pill"
           value={text}
@@ -106,7 +151,7 @@ export function ChatScreen({ tasks, users, meId, taskId, onTaskId, onSend }: Pro
                     setPicking(false);
                   }}
                 >
-                  <b className="ellipsis">{t.title}</b>
+                  <b className="ellipsis">№{t.id} · {t.title}</b>
                   <span className="muted">{t.comments.length ? `💬 ${t.comments.length}` : 'без комментариев'}</span>
                 </button>
               ))}

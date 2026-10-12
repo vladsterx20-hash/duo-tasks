@@ -5,9 +5,8 @@ import type { AppNotification, Settings, Status, Task, User } from './types';
 import { applyTheme } from './theme';
 import { haptic, inTelegram, openRoute } from './utils';
 import { ActionMenu, type MenuItem } from './components/ActionMenu';
-import { Icon } from './components/Icon';
 import { BottomNav, type Tab } from './components/BottomNav';
-import { BellButton, TopBar } from './components/TopBar';
+import { AddButton, BellButton, MoreButton, TopBar } from './components/TopBar';
 import { Home } from './components/Home';
 import { TasksScreen } from './components/TasksScreen';
 import { TaskForm } from './components/TaskForm';
@@ -233,12 +232,8 @@ export default function App() {
       />
     );
   } else if (overlay?.name === 'detail' && current) {
-    title = 'Задача';
-    right = (
-      <button className="bell" onClick={() => setMenuOpen(true)} aria-label="Действия с задачей" aria-haspopup="menu" aria-expanded={menuOpen}>
-        <Icon name="more" size={22} />
-      </button>
-    );
+    title = `Задача №${current.id}`;
+    right = <MoreButton onClick={() => setMenuOpen(true)} expanded={menuOpen} />;
     content = (
       <TaskDetail
         task={current}
@@ -267,6 +262,7 @@ export default function App() {
         />
       );
     } else if (tab === 'tasks') {
+      right = <AddButton onClick={() => setOverlay({ name: 'form' })} />;
       content = (
         <TasksScreen
           tasks={tasks}
@@ -277,7 +273,6 @@ export default function App() {
           onOpen={openTask}
           onTake={take}
           onComplete={setCompleting}
-          onNew={() => setOverlay({ name: 'form' })}
           onRefresh={refresh}
         />
       );
@@ -293,6 +288,7 @@ export default function App() {
           taskId={chatTaskId}
           onTaskId={setChatTaskId}
           onSend={(t, text) => addComment(t, text)}
+          onUpload={(t, files) => uploadFiles(t, files)}
         />
       );
     } else {
@@ -326,7 +322,7 @@ export default function App() {
   return (
     <div className={'app' + (fullBleed && !overlay ? ' bleed' : '')}>
       {!(fullBleed && !overlay) && (
-        <TopBar title={title} onBack={overlay && !inTelegram() ? back : undefined} right={right} />
+        <TopBar title={title} onBack={overlay ? back : undefined} right={right} stacked={!!overlay} />
       )}
       <main className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '')}>{content}</main>
       {showNav && <BottomNav tab={tab} onChange={setTab} />}

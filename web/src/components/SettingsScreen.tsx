@@ -3,6 +3,7 @@ import { api } from '../api';
 import type { Settings, Theme } from '../types';
 import { applyTheme } from '../theme';
 import { haptic } from '../utils';
+import { Icon } from './Icon';
 
 interface Props {
   settings: Settings;
@@ -32,7 +33,7 @@ const FLAGS: { key: Flag; title: string }[] = [
 export function SettingsScreen({ settings, onChange, onError }: Props) {
   const [busy, setBusy] = useState(false);
   const [details, setDetails] = useState(false);
-  const all = FLAGS.some((f) => settings[f.key]);
+  const any = FLAGS.some((f) => settings[f.key]);
 
   async function save(patch: Partial<Settings>) {
     const prev = settings;
@@ -51,72 +52,72 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
     }
   }
 
-  const setAll = (on: boolean) =>
-    save({ n_assigned: on, n_taken: on, n_done: on, n_comment: on, n_remind: on });
+  const setAll = (on: boolean) => save({ n_assigned: on, n_taken: on, n_done: on, n_comment: on, n_remind: on });
 
   return (
     <div className="settings">
-      <div className="group">
-        <label className="row">
-          <span className="row-title">Уведомления</span>
-          <input type="checkbox" className="switch" checked={all} disabled={busy} onChange={(e) => setAll(e.target.checked)} />
+      <section className="dcard">
+        <div className="dlabel">Уведомления</div>
+        <label className="srow">
+          <span className="srow-title">Присылать уведомления</span>
+          <input type="checkbox" className="switch" checked={any} disabled={busy} onChange={(e) => setAll(e.target.checked)} />
         </label>
-      </div>
-
-      <div className="group">
-        <div className="row">
-          <span className="row-title">Тема</span>
-          <div className="seg-pill small" role="radiogroup" aria-label="Тема">
-            {([['light', 'Светлая'], ['dark', 'Тёмная']] as [Theme, string][]).map(([k, label]) => (
-              <button
-                key={k}
-                role="radio"
-                aria-checked={settings.theme === k}
-                className={settings.theme === k ? 'active' : ''}
-                onClick={() => save({ theme: k })}
-              >
-                {label}
-              </button>
+        <button className="srow link" onClick={() => setDetails(!details)} aria-expanded={details}>
+          <span className="srow-title">Настроить подробнее</span>
+          <span className={'chev' + (details ? ' open' : '')}>
+            <Icon name="chevron" size={20} />
+          </span>
+        </button>
+        {details && (
+          <>
+            {FLAGS.map((f) => (
+              <label key={f.key} className="srow sub">
+                <span className="srow-title">{f.title}</span>
+                <input
+                  type="checkbox"
+                  className="switch"
+                  checked={settings[f.key]}
+                  disabled={busy}
+                  onChange={(e) => save({ [f.key]: e.target.checked })}
+                />
+              </label>
             ))}
-          </div>
-        </div>
-      </div>
-
-      <button className="link-orange more" onClick={() => setDetails(!details)} aria-expanded={details}>
-        {details ? 'Скрыть настройки уведомлений' : 'Настроить уведомления подробнее'}
-      </button>
-
-      {details && (
-        <div className="group">
-          {FLAGS.map((f) => (
-            <label key={f.key} className="row">
-              <span className="row-title">{f.title}</span>
-              <input
-                type="checkbox"
-                className="switch"
-                checked={settings[f.key]}
-                disabled={busy}
-                onChange={(e) => save({ [f.key]: e.target.checked })}
-              />
+            <label className={'srow sub' + (settings.n_remind ? '' : ' disabled')}>
+              <span className="srow-title">Напоминать</span>
+              <select
+                className="select"
+                value={settings.remind_minutes}
+                disabled={busy || !settings.n_remind}
+                onChange={(e) => save({ remind_minutes: Number(e.target.value) })}
+              >
+                {REMIND_OPTIONS.map(([v, label]) => (
+                  <option key={v} value={v}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </label>
-          ))}
-          <label className={'row' + (settings.n_remind ? '' : ' disabled')}>
-            <span className="row-title">Напоминать</span>
-            <select
-              className="select"
-              value={settings.remind_minutes}
-              disabled={busy || !settings.n_remind}
-              onChange={(e) => save({ remind_minutes: Number(e.target.value) })}
+          </>
+        )}
+      </section>
+
+      <section className="dcard">
+        <div className="dlabel">Тема</div>
+        <div className="seg-pill wide" role="radiogroup" aria-label="Тема">
+          {([['light', 'Светлая'], ['dark', 'Тёмная']] as [Theme, string][]).map(([k, label]) => (
+            <button
+              key={k}
+              role="radio"
+              aria-checked={settings.theme === k}
+              className={settings.theme === k ? 'active' : ''}
+              onClick={() => save({ theme: k })}
             >
-              {REMIND_OPTIONS.map(([v, label]) => (
-                <option key={v} value={v}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+              {label}
+            </button>
+          ))}
         </div>
-      )}
+      </section>
+
       <p className="muted lead">Уведомления приходят от бота в Telegram. Эти настройки действуют только для вас.</p>
     </div>
   );

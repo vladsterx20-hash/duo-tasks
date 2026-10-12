@@ -3,32 +3,67 @@ import { Icon } from './Icon';
 
 interface Props {
   title: string;
-  /** Показывать стрелку «назад» (вне Telegram, где нет системной кнопки) */
+  /** Круглая кнопка «назад» слева */
   onBack?: () => void;
+  /** Кнопка справа (колокольчик, «+», «⋯») */
   right?: ReactNode;
+  /** Вложенные экраны: сначала ряд кнопок, ниже по центру заголовок */
+  stacked?: boolean;
 }
 
-export function TopBar({ title, onBack, right }: Props) {
+export function TopBar({ title, onBack, right, stacked }: Props) {
+  const left = onBack ? (
+    <button className="round-btn dark" onClick={onBack} aria-label="Назад">
+      <Icon name="back" size={20} />
+    </button>
+  ) : (
+    <span className="slot" />
+  );
+  const end = right ?? <span className="slot" />;
+
+  if (stacked)
+    return (
+      <header className="topbar stacked">
+        <div className="topbar-row">
+          {left}
+          {end}
+        </div>
+        <h1>{title}</h1>
+      </header>
+    );
+
   return (
     <header className="topbar">
-      <div className="topbar-left">
-        {onBack && (
-          <button className="topbar-back" onClick={onBack} aria-label="Назад">
-            <Icon name="back" size={20} />
-          </button>
-        )}
+      <div className="topbar-row">
+        {left}
         <h1>{title}</h1>
+        {end}
       </div>
-      {right}
     </header>
   );
 }
 
 export function BellButton({ unread, onClick }: { unread: number; onClick: () => void }) {
   return (
-    <button className="bell" onClick={onClick} aria-label={unread ? `Уведомления: новых ${unread}` : 'Уведомления'}>
+    <button className="round-btn dark bell" onClick={onClick} aria-label={unread ? `Уведомления: новых ${unread}` : 'Уведомления'}>
       <Icon name="bell" size={20} />
       {unread > 0 && <span className="bell-dot" />}
+    </button>
+  );
+}
+
+export function AddButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button className="round-btn orange" onClick={onClick} aria-label="Новая задача">
+      <Icon name="plus" size={22} strokeWidth={2.8} />
+    </button>
+  );
+}
+
+export function MoreButton({ onClick, expanded }: { onClick: () => void; expanded: boolean }) {
+  return (
+    <button className="round-btn dark" onClick={onClick} aria-label="Действия с задачей" aria-haspopup="menu" aria-expanded={expanded}>
+      <Icon name="more" size={22} />
     </button>
   );
 }

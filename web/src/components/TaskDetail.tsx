@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { PRIORITY_LABEL } from '../types';
 import type { Task, User } from '../types';
 import { assigneesOf, fmtDue, fmtMoney, fmtSize, isOverdue, openFile, statusLabel } from '../utils';
-import { Avatar } from './Avatar';
-import { Icon } from './Icon';
+import { AvatarStack } from './Avatar';
+import { Icon, type IconName } from './Icon';
 
 interface Props {
   task: Task;
@@ -16,7 +16,17 @@ interface Props {
 
 const MAX_FILE = 20 * 1024 * 1024;
 
-/** Действия с задачей (маршрут, статус, изменить, удалить) вынесены в меню «⋯» в правом верхнем углу */
+function Row({ icon, label, children, alert }: { icon: IconName; label: string; children: React.ReactNode; alert?: boolean }) {
+  return (
+    <div className="drow">
+      <Icon name={icon} size={18} />
+      <span className="drow-label">{label}</span>
+      <span className={'drow-value' + (alert ? ' alert' : '')}>{children}</span>
+    </div>
+  );
+}
+
+/** Действия с задачей (маршрут, статус, изменить, удалить) — в меню «⋯» справа вверху */
 export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUpload }: Props) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -24,7 +34,7 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
   const [uploadError, setUploadError] = useState('');
   const executors = assigneesOf(task, users);
 
-  // Фото и файлы можно догружать, пока задача в работе
+  // Скрепка рядом с комментарием: фото и файлы прикрепляются к задаче
   async function pick(list: FileList | null) {
     if (!list || list.length === 0) return;
     const files = Array.from(list);
@@ -54,65 +64,54 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
     }
   }
 
+  const planProfit = task.status === 'done' && task.profit !== null ? task.profit : task.price - task.cost;
+  const hasMoney = task.price > 0 || task.cost > 0 || task.profit !== null;
+
   return (
     <div className="detail">
-      <h2 className={'detail-title' + (task.status === 'done' ? ' struck' : '')}>
-        <span className="pin-num">{task.id}</span> {task.title}
-      </h2>
+      <section className="dcard">
+        <div className="dlabel">Задача:</div>
+        <div className={'dvalue' + (task.status === 'done' ? ' struck' : '')}>{task.title}</div>
+      </section>
 
-      <div className="chips">
-        <span className={'chip status-' + task.status}>{statusLabel[task.status]}</span>
-        <span className={'chip' + (isOverdue(task) ? ' overdue' : '')}>🕒 {fmtDue(task.due_at)}</span>
-        <span className={'chip' + (task.priority === 'high' ? ' hot' : '')}>
-          {task.priority === 'high' ? '🔥 ' : ''}Приоритет: {PRIORITY_LABEL[task.priority].toLowerCase()}
-        </span>
-      </div>
+      <section className="dcard">
+        <div className="dlabel">Описание:</div>
+        {task.description ? <div className="dvalue pre">{task.description}</div> : <div className="dvalue muted">Описание не добавлено</div>}
+      </section>
 
-      {/* Только исполнители: один — рядом с подписью, двое — друг под другом */}
-      <div className="assignees">
-        <span className="muted">{executors.length > 1 ? 'Исполнители' : 'Исполнитель'}</span>
-        <div className="assignees-list">
-          {executors.map((u) => (
-            <span key={u.id} className="person">
-              <Avatar user={u} size={28} /> {u.first_name}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {task.customer && (
-        <div className="info-card">
-          <div className="money-row">
-            <span className="muted">Заказчик</span>
-            <b className="customer-name">{task.customer}</b>
-          </div>
-        </div>
-      )}
-
-      {/* Описание: заголовок раздела и тёмная подложка с текстом задачи */}
-      <section className="sec">
-        <h3>Описание</h3>
-        {task.description ? (
-          <p className="desc">{task.description}</p>
-        ) : (
-          <p className="desc muted">Описание не добавлено</p>
+      <section className="dcard rows">
+        <Row icon="list" label="Статус">
+          {statusLabel[task.status]}
+        </Row>
+        <Row icon="clock" label="Срок" alert={isOverdue(task)}>
+          {fmtDue(task.due_at)}
+        </Row>
+        <Row icon="flag" label="Приоритет">
+          {task.priority === 'high' ? '🔥 ' : ''}
+          {PRIORITY_LABEL[task.priority]}
+        </Row>
+        {task.customer && (
+          <Row icon="user" label="Заказчик">
+            {task.customer}
+          </Row>
+        )}
+        <Row icon="users" label={executors.length > 1 ? 'Исполнители' : 'Исполнитель'}>
+          <AvatarStack users={executors} size={34} />
+        </Row>
+        {hasMoney && (
+          <>
+            <Row icon="coin" label="Стоимость">{fmtMoney(task.price)}</Row>
+            <Row icon="coin" label="Себестоимость">{fmtMoney(task.cost)}</Row>
+            <Row icon="coin" label={task.status === 'done' ? 'Прибыль (итог)' : 'Прибыль (план)'}>
+              <span className="orange">{fmtMoney(planProfit)}</span>
+            </Row>
+          </>
         )}
       </section>
 
-      {(task.price > 0 || task.cost > 0 || task.profit !== null) && (
-        <div className="info-card money">
-          <div className="money-row"><span className="muted">Стоимость</span><b>{fmtMoney(task.price)}</b></div>
-          <div className="money-row"><span className="muted">Себестоимость</span><b>{fmtMoney(task.cost)}</b></div>
-          <div className="money-row">
-            <span className="muted">{task.status === 'done' ? 'Прибыль (итог)' : 'Прибыль (план)'}</span>
-            <b className="orange">{fmtMoney(task.status === 'done' && task.profit !== null ? task.profit : task.price - task.cost)}</b>
-          </div>
-        </div>
-      )}
-
-      {(task.attachments.length > 0 || task.status === 'in_progress') && (
-        <>
-          <h3>Файлы{task.attachments.length > 0 ? ` · ${task.attachments.length}` : ''}</h3>
+      {task.attachments.length > 0 && (
+        <section className="sec">
+          <h3 className="caps">Файлы · {task.attachments.length}</h3>
           <div className="files">
             {task.attachments.map((a) => (
               <button key={a.id} className="file-item link" onClick={() => openFile(a.file_url)}>
@@ -122,63 +121,63 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
               </button>
             ))}
           </div>
-          {task.status === 'in_progress' && (
-            <>
-              <div className="upload-row">
-                <label className={'upload-btn' + (uploading ? ' busy' : '')}>
-                  <Icon name="camera" size={18} /> Фото
-                  <input type="file" accept="image/*" multiple hidden disabled={uploading} onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
-                </label>
-                <label className={'upload-btn' + (uploading ? ' busy' : '')}>
-                  <Icon name="clip" size={18} /> Файл
-                  <input type="file" multiple hidden disabled={uploading} onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
-                </label>
-              </div>
-              {uploading && <div className="muted hint">Загружаем…</div>}
-              {uploadError && <div className="error" role="alert">{uploadError}</div>}
-            </>
-          )}
-        </>
+        </section>
       )}
 
-      {/* Комментарии — в самом низу страницы */}
+      {/* Комментарии — внизу страницы */}
       <section className="comments-section">
-      <h3>Комментарии{task.comments.length > 0 ? ` · ${task.comments.length}` : ''}</h3>
-      <div className="comments">
-        {task.comments.length === 0 && <div className="muted">Пока нет комментариев</div>}
-        {task.comments.map((c) => {
-          const mine = c.author_id === meId;
-          const u = users.find((x) => x.id === c.author_id);
-          return (
-            <div key={c.id} className={'bubble' + (mine ? ' mine' : '')}>
-              {!mine && <div className="bubble-name">{u?.first_name}</div>}
-              <div className="bubble-text">{c.text}</div>
-              <div className="bubble-time">
-                {fmtDue(c.created_at)}
-                {mine && (
-                  <button className="bubble-del" aria-label="Удалить комментарий" onClick={() => onDeleteComment(c.id)}>
-                    удалить
-                  </button>
-                )}
+        <h3 className="caps">Комментарии{task.comments.length > 0 ? ` · ${task.comments.length}` : ''}</h3>
+        <div className="comments">
+          {task.comments.length === 0 && <div className="muted">Пока нет комментариев</div>}
+          {task.comments.map((c) => {
+            const mine = c.author_id === meId;
+            const u = users.find((x) => x.id === c.author_id);
+            return (
+              <div key={c.id} className={'bubble' + (mine ? ' mine' : '')}>
+                {!mine && <div className="bubble-name">{u?.first_name}</div>}
+                <div className="bubble-text">{c.text}</div>
+                <div className="bubble-time">
+                  {fmtDue(c.created_at)}
+                  {mine && (
+                    <button className="bubble-del" aria-label="Удалить комментарий" onClick={() => onDeleteComment(c.id)}>
+                      удалить
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-        <div className="comment-form">
-          <input
-            className="field pill"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && send()}
-            maxLength={2000}
-            placeholder="Комментарий…"
-          />
-          <button className="round-btn orange" onClick={send} disabled={!text.trim() || sending} aria-label="Отправить">
-            <Icon name="send" size={18} strokeWidth={3} />
-          </button>
+            );
+          })}
         </div>
-      </div>
+        {uploading && <div className="muted hint">Загружаем файл…</div>}
+        {uploadError && <div className="error" role="alert">{uploadError}</div>}
       </section>
+
+      <div className="cbar">
+        <label className={'round-btn dark' + (uploading ? ' busy' : '')} aria-label="Прикрепить фото или файл">
+          <Icon name="clip" size={20} />
+          <input
+            type="file"
+            multiple
+            hidden
+            disabled={uploading}
+            onChange={(e) => {
+              pick(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </label>
+        <input
+          className="field pill"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && send()}
+          maxLength={2000}
+          placeholder="Комментарий…"
+        />
+        <button className="round-btn orange" onClick={send} disabled={!text.trim() || sending} aria-label="Отправить">
+          <Icon name="send" size={18} strokeWidth={3} />
+        </button>
+      </div>
     </div>
   );
 }

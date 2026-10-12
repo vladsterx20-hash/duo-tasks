@@ -1,5 +1,6 @@
 import type { Task, User } from '../types';
 import { assigneesOf, fmtDue, isOverdue } from '../utils';
+import { AvatarStack } from './Avatar';
 import { Icon } from './Icon';
 
 interface Props {
@@ -8,53 +9,35 @@ interface Props {
   onOpen: () => void;
   onTake: () => void;
   onComplete: () => void;
-  /** компактный вариант для главной */
+  /** компактный вариант для главной (без кнопок действий) */
   compact?: boolean;
 }
 
 export function TaskCard({ task, users, onOpen, onTake, onComplete, compact }: Props) {
-  const who = assigneesOf(task, users)
-    .map((u) => u.first_name)
-    .join(' и ');
   const done = task.status === 'done';
-  const inProgress = task.status === 'in_progress';
-
-  const circleLabel = done ? 'Завершена' : inProgress ? 'Завершить задачу' : 'Взять в работу';
 
   return (
     <div
-      className={'card prio-' + task.priority + (isOverdue(task) ? ' overdue' : '') + (done ? ' done' : '')}
+      className={'card' + (isOverdue(task) ? ' overdue' : '') + (done ? ' done' : '')}
       onClick={onOpen}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
     >
       <div className="card-main">
-        <button
-          className={'circle' + (done ? ' on' : '') + (inProgress ? ' work' : '')}
-          aria-label={circleLabel}
-          disabled={done}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (inProgress) onComplete();
-            else if (!done) onTake();
-          }}
-        >
-          {(done || inProgress) && <Icon name="check" size={16} strokeWidth={3} />}
-        </button>
+        <span className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '')} aria-label={`Задача номер ${task.id}`}>
+          {task.id}
+        </span>
         <div className="card-body">
           <div className="card-title">{task.title}</div>
-          {task.customer && <div className="card-customer ellipsis">Заказчик: {task.customer}</div>}
-          <div className="card-meta">
+          {task.customer && <div className="card-customer ellipsis">{task.customer}</div>}
+          <div className="card-due">
+            <Icon name="clock" size={14} />
             <span className="due">{fmtDue(task.due_at)}</span>
-            <span aria-hidden="true">·</span>
-            <span className="who">{who}</span>
-            {task.priority === 'high' && <span className="prio-flag">🔥</span>}
+            {task.priority === 'high' && <span aria-label="Высокий приоритет">🔥</span>}
           </div>
         </div>
-        <span className="card-icon" aria-label={task.attachments.length ? 'Есть файлы' : undefined}>
-          <Icon name={task.attachments.length ? 'clip' : 'list'} size={16} />
-        </span>
+        <AvatarStack users={assigneesOf(task, users)} size={34} />
       </div>
       {!compact && task.status === 'new' && (
         <button
@@ -65,6 +48,17 @@ export function TaskCard({ task, users, onOpen, onTake, onComplete, compact }: P
           }}
         >
           Взять в работу
+        </button>
+      )}
+      {!compact && task.status === 'in_progress' && (
+        <button
+          className="take-btn finish"
+          onClick={(e) => {
+            e.stopPropagation();
+            onComplete();
+          }}
+        >
+          Завершить задачу
         </button>
       )}
     </div>
