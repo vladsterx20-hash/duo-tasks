@@ -26,6 +26,7 @@ function initialChoice(task: Task | undefined, me: User): AssigneeChoice {
 export function TaskForm({ task, me, partner, onSaved }: Props) {
   const initialDue = toLocalInput(task?.due_at ?? null);
   const [title, setTitle] = useState(task?.title ?? '');
+  const [customer, setCustomer] = useState(task?.customer ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [date, setDate] = useState(initialDue.slice(0, 10));
   const [time, setTime] = useState(initialDue.slice(11, 16));
@@ -72,6 +73,7 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
     try {
       const fd = new FormData();
       fd.set('title', title.trim());
+      fd.set('customer', customer.trim());
       fd.set('description', description);
       // Если указана дата без времени — берём 18:00
       fd.set('due_at', date ? new Date(`${date}T${time || '18:00'}`).toISOString() : '');
@@ -135,6 +137,17 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
         placeholder="Название задачи"
         maxLength={200}
         autoFocus={!task}
+      />
+
+      <label className="field-label" htmlFor="f-customer">Заказчик</label>
+      <input
+        id="f-customer"
+        className="field"
+        value={customer}
+        onChange={(e) => setCustomer(e.target.value)}
+        placeholder="Название заказчика"
+        maxLength={200}
+        autoComplete="off"
       />
 
       <label className="field-label" htmlFor="f-desc">Описание</label>

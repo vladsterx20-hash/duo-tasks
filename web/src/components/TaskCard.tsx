@@ -44,6 +44,7 @@ export function TaskCard({ task, users, onOpen, onTake, onComplete, compact }: P
         </button>
         <div className="card-body">
           <div className="card-title">{task.title}</div>
+          {task.customer && <div className="card-customer ellipsis">Заказчик: {task.customer}</div>}
           <div className="card-meta">
             <span className="due">{fmtDue(task.due_at)}</span>
             <span aria-hidden="true">·</span>

@@ -42,7 +42,7 @@ const validPriority = (v) => (PRIORITIES.includes(v) ? v : undefined);
 
 const SELECT = `
   select t.id, t.title, t.description, t.due_at, t.status, t.priority, t.author_id, t.assignee_id,
-         t.created_at, t.completed_at, t.price, t.cost, t.profit, t.address, t.lat, t.lng, t.taken_by,
+         t.created_at, t.completed_at, t.price, t.cost, t.profit, t.address, t.lat, t.lng, t.customer, t.taken_by,
          coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
                    order by a.id) from attachments a where a.task_id = t.id), '[]'::json) as attachments,
          coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
@@ -244,6 +244,7 @@ function readCommon(b, before) {
   out.cost = cost ?? before?.cost ?? 0;
 
   out.address = b.address !== undefined ? String(b.address).trim().slice(0, 300) : before?.address ?? '';
+  out.customer = b.customer !== undefined ? String(b.customer).trim().slice(0, 200) : before?.customer ?? '';
 
   const lat = parseCoord(b.lat, 90);
   const lng = parseCoord(b.lng, 180);
@@ -272,8 +273,8 @@ api.post(
 
     const id = await tx(async (c) => {
       const { rows } = await c.query(
-        `insert into tasks (title, description, due_at, author_id, assignee_id, priority, price, cost, address, lat, lng)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
+        `insert into tasks (title, description, due_at, author_id, assignee_id, priority, price, cost, address, lat, lng, customer)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
         [
           title,
           b.description || '',
@@ -286,6 +287,7 @@ api.post(
           f.address,
           f.lat,
           f.lng,
+          f.customer,
         ]
       );
       await saveFiles(c, rows[0].id, req.files);
@@ -327,7 +329,7 @@ api.patch(
     await tx(async (c) => {
       await c.query(
         `update tasks set title=$2, description=$3, due_at=$4, assignee_id=$5, priority=$6,
-           price=$7, cost=$8, address=$9, lat=$10, lng=$11 where id=$1`,
+           price=$7, cost=$8, address=$9, lat=$10, lng=$11, customer=$12 where id=$1`,
         [
           id,
           title,
@@ -340,6 +342,7 @@ api.patch(
           f.address,
           f.lat,
           f.lng,
+          f.customer,
         ]
       );
       if (dueChanged) await c.query('delete from reminders_sent where task_id=$1', [id]);

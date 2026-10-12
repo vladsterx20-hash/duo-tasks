@@ -60,6 +60,7 @@ export async function initDb() {
     alter table tasks add column if not exists address text not null default '';
     alter table tasks add column if not exists lat double precision;
     alter table tasks add column if not exists lng double precision;
+    alter table tasks add column if not exists customer text not null default '';
     alter table tasks add column if not exists taken_by bigint references users(id);
     alter table users add column if not exists theme text not null default 'dark';
     alter table users add column if not exists n_taken boolean not null default true;

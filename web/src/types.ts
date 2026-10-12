@@ -46,6 +46,7 @@ export interface Task {
   /** фиксируется при завершении */
   profit: number | null;
   address: string;
+  customer: string;
   lat: number | null;
   lng: number | null;
   taken_by: number | null;

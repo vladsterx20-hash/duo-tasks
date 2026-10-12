@@ -75,6 +75,15 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComp
         </div>
       </div>
 
+      {task.customer && (
+        <div className="info-card">
+          <div className="money-row">
+            <span className="muted">Заказчик</span>
+            <b className="customer-name">{task.customer}</b>
+          </div>
+        </div>
+      )}
+
       {task.description && <p className="desc">{task.description}</p>}
 
       {(task.address || task.lat !== null) && (
