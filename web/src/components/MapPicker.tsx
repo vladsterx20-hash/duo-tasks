@@ -69,22 +69,24 @@ export function MapPicker({ initial, onDone, onCancel }: Props) {
   }, [point]);
 
   return (
-    <div className="picker">
-      <div ref={el} className="map" />
-      <div className="picker-hint">{point ? 'Метку можно перетащить' : 'Нажмите на карту, чтобы поставить метку'}</div>
-      <div className="picker-bar">
-        <div className="picker-label">{point ? (loading ? 'Определяем адрес…' : label || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`) : 'Точка не выбрана'}</div>
-        <div className="picker-actions">
-          <button className="secondary" onClick={onCancel}>
-            Отмена
-          </button>
-          <button
-            className="primary"
-            disabled={!point}
-            onClick={() => point && onDone({ ...point, address: label || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` })}
-          >
-            Готово
-          </button>
+    <div className="picker" onClick={onCancel}>
+      <div className="picker-window" role="dialog" aria-modal="true" aria-label="Точка на карте" onClick={(e) => e.stopPropagation()}>
+        <div ref={el} className="map" />
+        <div className="picker-hint">{point ? 'Точку можно перетащить' : 'Нажмите на карту, чтобы поставить точку'}</div>
+        <div className="picker-bar">
+          <div className="picker-label">{point ? (loading ? 'Определяем адрес…' : label || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`) : 'Точка не выбрана'}</div>
+          <div className="picker-actions">
+            <button className="secondary" onClick={onCancel}>
+              Закрыть
+            </button>
+            <button
+              className="primary"
+              disabled={!point}
+              onClick={() => point && onDone({ ...point, address: label || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` })}
+            >
+              Готово
+            </button>
+          </div>
         </div>
       </div>
     </div>

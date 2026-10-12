@@ -3,7 +3,9 @@ import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
 import type { AppNotification, Settings, Status, Task, User } from './types';
 import { applyTheme } from './theme';
-import { haptic, inTelegram } from './utils';
+import { haptic, inTelegram, openRoute } from './utils';
+import { ActionMenu, type MenuItem } from './components/ActionMenu';
+import { Icon } from './components/Icon';
 import { BottomNav, type Tab } from './components/BottomNav';
 import { BellButton, TopBar } from './components/TopBar';
 import { Home } from './components/Home';
@@ -31,6 +33,7 @@ export default function App() {
   const [taskTab, setTaskTab] = useState<Status>('new');
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [completing, setCompleting] = useState<Task | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [chatTaskId, setChatTaskId] = useState<number | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
   const [toast, setToast] = useState('');
@@ -219,17 +222,16 @@ export default function App() {
     );
   } else if (overlay?.name === 'detail' && current) {
     title = 'Задача';
+    right = (
+      <button className="bell" onClick={() => setMenuOpen(true)} aria-label="Действия с задачей" aria-haspopup="menu" aria-expanded={menuOpen}>
+        <Icon name="more" size={22} />
+      </button>
+    );
     content = (
       <TaskDetail
         task={current}
         users={users}
         meId={me.id}
-        onEdit={() => setOverlay({ name: 'form', taskId: current.id })}
-        onDelete={() => remove(current)}
-        onTake={() => take(current)}
-        onComplete={() => setCompleting(current)}
-        onReopen={() => changeStatus(current, 'in_progress').catch(() => {})}
-        onReturnToNew={() => changeStatus(current, 'new').catch(() => {})}
         onComment={(text) => addComment(current, text)}
         onDeleteComment={(cid) => deleteComment(current, cid)}
       />
@@ -285,6 +287,27 @@ export default function App() {
     }
   }
 
+  // Меню действий: маршрут → статус → изменить → удалить
+  function taskMenu(t: Task): MenuItem[] {
+    const items: MenuItem[] = [];
+    if (t.lat !== null && t.lng !== null) items.push({ label: 'Маршрут', icon: 'route', onClick: () => openRoute(t.lat!, t.lng!) });
+    if (t.status === 'new') items.push({ label: 'Взять в работу', icon: 'play', onClick: () => take(t) });
+    if (t.status === 'in_progress') {
+      items.push({ label: 'Завершить задачу', icon: 'check', onClick: () => setCompleting(t) });
+      items.push({ label: 'Вернуть в новое', icon: 'undo', onClick: () => changeStatus(t, 'new').catch(() => {}) });
+    }
+    if (t.status === 'done') items.push({ label: 'Вернуть в работу', icon: 'undo', onClick: () => changeStatus(t, 'in_progress').catch(() => {}) });
+    items.push({ label: 'Изменить', icon: 'edit', onClick: () => setOverlay({ name: 'form', taskId: t.id }) });
+    items.push({ label: 'Удалить', icon: 'trash', danger: true, onClick: () => confirmDelete(t) });
+    return items;
+  }
+
+  function confirmDelete(t: Task) {
+    const q = 'Удалить задачу безвозвратно?';
+    if (inTelegram()) WebApp.showConfirm(q, (ok) => ok && remove(t));
+    else if (confirm(q)) remove(t);
+  }
+
   const showNav = !overlay;
 
   return (
@@ -294,6 +317,7 @@ export default function App() {
       )}
       <main className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '')}>{content}</main>
       {showNav && <BottomNav tab={tab} onChange={setTab} />}
+      {menuOpen && overlay?.name === 'detail' && current && <ActionMenu items={taskMenu(current)} onClose={() => setMenuOpen(false)} />}
       {completing && <CompleteSheet task={completing} onConfirm={confirmComplete} onClose={() => setCompleting(null)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

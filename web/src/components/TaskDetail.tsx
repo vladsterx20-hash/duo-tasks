@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import WebApp from '@twa-dev/sdk';
 import { PRIORITY_LABEL } from '../types';
 import type { Task, User } from '../types';
-import { assigneesOf, fmtDue, fmtMoney, fmtSize, inTelegram, isOverdue, openFile, openRoute, statusLabel } from '../utils';
+import { assigneesOf, fmtDue, fmtMoney, fmtSize, isOverdue, openFile, statusLabel } from '../utils';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
 
@@ -10,20 +9,15 @@ interface Props {
   task: Task;
   users: User[];
   meId: number;
-  onEdit: () => void;
-  onDelete: () => void;
-  onTake: () => void;
-  onComplete: () => void;
-  onReopen: () => void;
-  onReturnToNew: () => void;
   onComment: (text: string) => Promise<void>;
   onDeleteComment: (id: number) => void;
 }
 
-export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComplete, onReopen, onReturnToNew, onComment, onDeleteComment }: Props) {
-  const author = users.find((u) => u.id === task.author_id);
+/** Действия с задачей (маршрут, статус, изменить, удалить) вынесены в меню «⋯» в правом верхнем углу */
+export function TaskDetail({ task, users, meId, onComment, onDeleteComment }: Props) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const executors = assigneesOf(task, users);
 
   async function send() {
     if (!text.trim() || sending) return;
@@ -36,11 +30,6 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComp
     } finally {
       setSending(false);
     }
-  }
-
-  function confirmDelete() {
-    if (inTelegram()) WebApp.showConfirm('Удалить задачу безвозвратно?', (ok) => ok && onDelete());
-    else if (confirm('Удалить задачу безвозвратно?')) onDelete();
   }
 
   return (
@@ -57,22 +46,15 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComp
         </span>
       </div>
 
-      <div className="people-row">
-        <div>
-          <span className="muted">Автор</span>
-          <div className="person">
-            <Avatar user={author} size={28} /> {author?.first_name}
-          </div>
-        </div>
-        <div>
-          <span className="muted">Исполнитель</span>
-          <div className="person">
-            {assigneesOf(task, users).map((u) => (
-              <span key={u.id} className="person">
-                <Avatar user={u} size={28} /> {u.first_name}
-              </span>
-            ))}
-          </div>
+      {/* Только исполнители: один — рядом с подписью, двое — друг под другом */}
+      <div className="assignees">
+        <span className="muted">{executors.length > 1 ? 'Исполнители' : 'Исполнитель'}</span>
+        <div className="assignees-list">
+          {executors.map((u) => (
+            <span key={u.id} className="person">
+              <Avatar user={u} size={28} /> {u.first_name}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -91,13 +73,8 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComp
         <div className="info-card">
           <div className="info-row">
             <Icon name="map" size={18} />
-            <span>{task.address || 'Метка на карте'}</span>
+            <span>{task.address || 'Точка на карте'}</span>
           </div>
-          {task.lat !== null && task.lng !== null && (
-            <button className="route-btn wide" onClick={() => openRoute(task.lat!, task.lng!)}>
-              <Icon name="route" size={16} /> Маршрут
-            </button>
-          )}
         </div>
       )}
 
@@ -161,21 +138,6 @@ export function TaskDetail({ task, users, meId, onEdit, onDelete, onTake, onComp
             <Icon name="send" size={18} strokeWidth={3} />
           </button>
         </div>
-      </div>
-
-      <div className="actions">
-        {task.status === 'new' && <button className="primary" onClick={onTake}>Взять в работу</button>}
-        {task.status === 'in_progress' && (
-          <>
-            <button className="primary" onClick={onComplete}>
-              <Icon name="check" size={18} strokeWidth={3} /> Завершить задачу
-            </button>
-            <button className="secondary" onClick={onReturnToNew}>Вернуть в новое</button>
-          </>
-        )}
-        {task.status === 'done' && <button className="primary" onClick={onReopen}>Вернуть в работу</button>}
-        <button className="secondary" onClick={onEdit}>Изменить</button>
-        <button className="danger" onClick={confirmDelete}>Удалить</button>
       </div>
     </div>
   );

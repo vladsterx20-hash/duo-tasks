@@ -46,6 +46,32 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // «Показать на карте»: открываем окно с картой. Если точка ещё не выбрана, но адрес введён — ищем его на карте.
+  // Координаты сохраняются только после «Готово» в окне карты.
+  const [mapInit, setMapInit] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  async function openMap() {
+    if (addr.lat !== null && addr.lng !== null) {
+      setMapInit({ lat: addr.lat, lng: addr.lng });
+    } else {
+      let found: { lat: number; lng: number } | null = null;
+      const q = addr.address.trim();
+      if (q.length >= 3) {
+        setLocating(true);
+        try {
+          const r = await api.geocode(q);
+          if (r[0]) found = { lat: r[0].lat, lng: r[0].lng };
+        } catch {
+          /* откроем карту без точки */
+        } finally {
+          setLocating(false);
+        }
+      }
+      setMapInit(found);
+    }
+    setPicker(true);
+  }
+
   const profit = Math.round((toNum(price) - toNum(cost)) * 100) / 100;
 
   const previews = useMemo(
@@ -164,9 +190,6 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
         </div>
       </div>
 
-      <label className="field-label">Адрес</label>
-      <AddressField value={addr} onChange={setAddr} onPickOnMap={() => setPicker(true)} />
-
       <label className="field-label">Исполнитель</label>
       <div className="seg-pill small">
         {choices.map(([k, name]) => (
@@ -185,6 +208,9 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
           </button>
         ))}
       </div>
+
+      <label className="field-label">Адрес</label>
+      <AddressField value={addr} onChange={setAddr} onShowOnMap={openMap} mapBusy={locating} />
 
       <label className="field-label">Файлы (до 20 МБ каждый)</label>
       <div className="files">
@@ -254,7 +280,7 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
 
       {picker && (
         <MapPicker
-          initial={addr.lat !== null && addr.lng !== null ? { lat: addr.lat, lng: addr.lng } : null}
+          initial={mapInit}
           onCancel={() => setPicker(false)}
           onDone={(v) => {
             setAddr({ address: addr.address.trim() ? addr.address : v.address, lat: v.lat, lng: v.lng });

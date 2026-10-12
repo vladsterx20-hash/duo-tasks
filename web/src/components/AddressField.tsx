@@ -12,12 +12,13 @@ export interface AddressValue {
 interface Props {
   value: AddressValue;
   onChange: (v: AddressValue) => void;
-  onPickOnMap: () => void;
+  onShowOnMap: () => void;
+  mapBusy?: boolean;
 }
 
 const PAUSE_MS = 800; // запрос только после паузы в наборе, а не на каждую букву
 
-export function AddressField({ value, onChange, onPickOnMap }: Props) {
+export function AddressField({ value, onChange, onShowOnMap, mapBusy }: Props) {
   const [items, setItems] = useState<GeoResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [empty, setEmpty] = useState(false);
@@ -105,10 +106,10 @@ export function AddressField({ value, onChange, onPickOnMap }: Props) {
           ))}
         </ul>
       )}
-      <button type="button" className="dashed" onClick={onPickOnMap}>
-        <Icon name="map" size={16} /> {value.lat !== null ? 'Изменить метку на карте' : 'Указать на карте'}
+      <button type="button" className="dashed" onClick={onShowOnMap} disabled={mapBusy}>
+        <Icon name="map" size={16} /> {mapBusy ? 'Ищем адрес…' : 'Показать на карте'}
       </button>
-      {value.lat !== null && <div className="muted hint">Метка на карте сохранена ✓</div>}
+      {value.lat !== null && <div className="muted hint">Точка на карте сохранена ✓</div>}
     </div>
   );
 }
