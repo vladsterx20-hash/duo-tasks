@@ -7,6 +7,7 @@ import { cleanMoney, fmtMoney, fmtSize, haptic, inTelegram, toLocalInput, toNum 
 import { AddressField, type AddressValue } from './AddressField';
 import { Icon } from './Icon';
 import { MapPicker } from './MapPicker';
+import { PickerField } from './PickerField';
 
 const MAX = 20 * 1024 * 1024;
 
@@ -181,12 +182,12 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
 
       <div className="two-cols">
         <div>
-          <label className="field-label" htmlFor="f-date">Срок</label>
-          <input id="f-date" className="field" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <span className="field-label">Срок</span>
+          <PickerField type="date" value={date} onChange={setDate} label="Срок: дата" placeholder="Выберите дату" />
         </div>
         <div>
-          <label className="field-label" htmlFor="f-time">Время</label>
-          <input id="f-time" className="field" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <span className="field-label">Время</span>
+          <PickerField type="time" value={time} onChange={setTime} label="Срок: время" placeholder="Выберите время" />
         </div>
       </div>
 

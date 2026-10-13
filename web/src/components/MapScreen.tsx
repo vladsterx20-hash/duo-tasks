@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 
 interface Props {
   tasks: Task[];
+  /** Вкладка общая со списком задач: что выбрано в «Задачах», то и на карте */
   tab: ActiveTab;
   onTab: (t: ActiveTab) => void;
   onList: () => void;
@@ -19,7 +20,7 @@ const TABS: [ActiveTab, string][] = [
   ['in_progress', 'В работе'],
 ];
 
-export function MapScreen({ tasks, tab, onTab, onList, onOpen }: Props) {
+export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
@@ -27,9 +28,22 @@ export function MapScreen({ tasks, tab, onTab, onList, onOpen }: Props) {
   const [selId, setSelId] = useState<number | null>(null);
 
   // На карте — задачи выбранной вкладки (новые или в работе), у которых есть точка
-  const pts = useMemo(() => tasks.filter((t) => t.status === tab && t.lat !== null && t.lng !== null), [tasks, tab]);
+  const onMap = (t: Task, v: ActiveTab) => t.status === v && t.lat !== null && t.lng !== null;
+  const pts = useMemo(() => tasks.filter((t) => onMap(t, view)), [tasks, view]);
   const selected = pts.find((t) => t.id === selId);
-  const countOn = (s: ActiveTab) => tasks.filter((t) => t.status === s && t.lat !== null && t.lng !== null).length;
+  const countOn = (v: ActiveTab) => tasks.filter((t) => onMap(t, v)).length;
+  // Задачи этой вкладки без точки: на карте их не показать — подскажем, почему
+  const withoutPoint = tasks.filter((t) => t.status === view && (t.lat === null || t.lng === null)).length;
+
+  // Открыли карту на вкладке без меток, а на другой они есть (например, задачу взяли в работу) — сразу показываем её
+  const autoSwitched = useRef(false);
+  useEffect(() => {
+    if (autoSwitched.current) return;
+    autoSwitched.current = true;
+    const other: ActiveTab = view === 'new' ? 'in_progress' : 'new';
+    if (countOn(view) === 0 && countOn(other) > 0) setView(other);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const map = createMap(el.current!, DEFAULT_CENTER, 10);
@@ -48,7 +62,7 @@ export function MapScreen({ tasks, tab, onTab, onList, onOpen }: Props) {
   useEffect(() => {
     setSelId(null);
     fitted.current = false;
-  }, [tab]);
+  }, [view]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -56,7 +70,8 @@ export function MapScreen({ tasks, tab, onTab, onList, onOpen }: Props) {
     if (!map || !group) return;
     group.clearLayers();
     pts.forEach((t) => {
-      L.marker([t.lat!, t.lng!], { icon: pinIcon(String(t.id), t.id === selId ? 'sel' : ''), keyboard: false })
+      const cls = (t.id === selId ? 'sel ' : '') + (t.status === 'in_progress' ? 'work' : '');
+      L.marker([t.lat!, t.lng!], { icon: pinIcon(String(t.id), cls), keyboard: false })
         .on('click', () => setSelId(t.id))
         .addTo(group);
     });
@@ -114,7 +129,7 @@ export function MapScreen({ tasks, tab, onTab, onList, onOpen }: Props) {
 
       <div className="map-tabs seg-pill two" role="tablist" aria-label="Статус задач на карте">
         {TABS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => onTab(k)}>
+          <button key={k} role="tab" aria-selected={view === k} className={view === k ? 'active' : ''} onClick={() => setView(k)}>
             {label}
             <span className="badge">{countOn(k)}</span>
           </button>
@@ -148,7 +163,8 @@ export function MapScreen({ tasks, tab, onTab, onList, onOpen }: Props) {
       )}
       {pts.length === 0 && (
         <div className="map-empty">
-          {tab === 'new' ? 'Нет новых задач с точкой на карте' : 'Нет задач в работе с точкой на карте'}
+          {view === 'new' ? 'Нет новых задач с точкой на карте' : 'Нет задач в работе с точкой на карте'}
+          {withoutPoint > 0 && <span className="map-empty-sub">Без точки: {withoutPoint}. Укажите адрес в задаче через «Показать на карте».</span>}
         </div>
       )}
 

@@ -570,3 +570,102 @@ button.profit-row { width: 100%; display: flex; align-items: center; gap: 14px; 
 
 /* Без свечения у кнопок «На карте» / «Список» и геолокации */
 .float-btn, .map-loc, .map-loc:disabled { box-shadow: none; }
+
+/* Поля «Срок» и «Время»: всегда видимы, нажатие в любом месте открывает выбор */
+.picker-field { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding-right: 14px; cursor: pointer; }
+.picker-field:focus-within { border-color: var(--accent); }
+.picker-field > svg { color: var(--accent); flex: none; }
+.pf-text { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-text.empty { color: var(--hint); }
+.pf-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; font-size: 16px; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.pf-input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.pf-clear { position: relative; z-index: 2; width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--hint); background: color-mix(in srgb, var(--hint) 20%, transparent); }
+
+/* Две колонки ровно пополам, даже если внутри длинный текст */
+.two-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.two-cols > div { min-width: 0; }
+
+/* Карта: три вкладки (Все / Новые / В работе), метка задачи в работе — оранжевая */
+.map-tabs.seg-pill { position: absolute; z-index: 30; top: calc(14px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(340px, calc(100% - 32px)); max-width: none; margin: 0; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); }
+.pin.work { background: var(--accent); color: var(--accent-text); border-color: #ffffff; }
+.pin.work.sel { border-color: #ffffff; box-shadow: 0 0 0 3px #111111, 0 0 0 5px var(--accent); }
+.map-empty { display: flex; flex-direction: column; gap: 4px; }
+.map-empty-sub { font-weight: 500; color: var(--hint); font-size: 12px; }
+
+/* Чат: список задач как список чатов */
+.chat-list { display: flex; flex-direction: column; }
+button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; border: 0; font: inherit; margin-bottom: 10px; }
+.chat-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.chat-row-title { font-size: 16px; font-weight: 800; }
+.chat-row-last { font-size: 13px; color: var(--hint); }
+.chat-row-last.none { opacity: 0.7; }
+.chat-row-meta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 44px; }
+.chat-row-time { font-size: 12px; color: var(--hint); }
+.unread-badge { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+.nav-btn { position: relative; }
+.nav-dot { position: absolute; top: 8px; right: 9px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--nav); }
+.nav-btn.active .nav-dot { display: none; }
+.chat-feed { min-height: 40vh; }
+
+/* =====================================================================
+   Светлая тема v2: серый фон, белые карточки с контуром и тенью — ничего не «сливается»
+   ===================================================================== */
+:root[data-theme='light'] {
+  --page: #f2f2f5;
+  --card: #ffffff;
+  --card-2: #f1f1f4;
+  --track: #e4e4ea;
+  --line: rgba(17, 17, 17, 0.1);
+  --hint: #666670;
+  --bg-grad: linear-gradient(180deg, #f2f2f5 0%, #f2f2f5 100%);
+  --shadow: 0 1px 2px rgba(17, 17, 17, 0.06), 0 6px 18px rgba(17, 17, 17, 0.06);
+}
+
+/* Карточки и блоки: белые, с тонким контуром и тенью */
+:root[data-theme='light'] .card,
+:root[data-theme='light'] .dcard,
+:root[data-theme='light'] .stat,
+:root[data-theme='light'] .notif,
+:root[data-theme='light'] .chat-task,
+:root[data-theme='light'] .file-item,
+:root[data-theme='light'] .pick-item,
+:root[data-theme='light'] .bubble:not(.mine),
+:root[data-theme='light'] .map-card,
+:root[data-theme='light'] .map-empty,
+:root[data-theme='light'] .geo-note,
+:root[data-theme='light'] .suggest {
+  background: var(--card);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  box-shadow: var(--shadow);
+}
+:root[data-theme='light'] .modal .dcard,
+:root[data-theme='light'] .pick-item { background: var(--card-2); box-shadow: none; }
+
+/* Поля ввода и кнопки-пилюли: видимая рамка */
+:root[data-theme='light'] .field { background: #ffffff; border-color: rgba(17, 17, 17, 0.14); }
+:root[data-theme='light'] .modal .field { background: var(--card-2); }
+:root[data-theme='light'] .field:focus,
+:root[data-theme='light'] .picker-field:focus-within { border-color: var(--accent); }
+:root[data-theme='light'] .fchip { background: #ffffff; border: 1px solid rgba(17, 17, 17, 0.12); box-shadow: var(--shadow); }
+:root[data-theme='light'] .fchip.active { background: var(--accent); border-color: var(--accent); }
+:root[data-theme='light'] .round-btn.dark { background: #ffffff; border: 1px solid rgba(17, 17, 17, 0.1); box-shadow: var(--shadow); }
+:root[data-theme='light'] .seg-pill { box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.06); }
+:root[data-theme='light'] .seg-pill button { color: #50505a; }
+:root[data-theme='light'] .seg-pill button.active { color: var(--accent-text); }
+:root[data-theme='light'] .take-btn { background: color-mix(in srgb, var(--accent) 14%, #ffffff); color: #b84a00; }
+
+/* Меню и окна */
+:root[data-theme='light'] .menu { background: #ffffff; border: 1px solid rgba(17, 17, 17, 0.08); box-shadow: 0 12px 36px rgba(17, 17, 17, 0.2); }
+:root[data-theme='light'] .sheet,
+:root[data-theme='light'] .modal { background: #ffffff; }
+:root[data-theme='light'] .toast { background: #1c1c1c; color: #ffffff; }
+
+/* Белый аватар исполнителя на белой карточке — с контуром */
+.avatar-fallback.tone-white { box-shadow: inset 0 0 0 1.5px rgba(17, 17, 17, 0.2); }
+
+/* Подсказка про оранжевый на светлом: достаточный контраст текста */
+:root[data-theme='light'] .link-orange,
+:root[data-theme='light'] .card-customer,
+:root[data-theme='light'] .profit-amount,
+:root[data-theme='light'] .about .about-last { color: #d4570f; }
+:root[data-theme='light'] .profit-amount.neg { color: var(--danger); }

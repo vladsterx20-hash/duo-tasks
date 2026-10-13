@@ -19,7 +19,7 @@ export function applyTheme(theme: Theme) {
     /* ignore */
   }
   try {
-    const color = theme === 'dark' ? '#000000' : '#ffffff';
+    const color = theme === 'dark' ? '#111111' : '#f2f2f5';
     WebApp.setHeaderColor(color);
     WebApp.setBackgroundColor(color);
   } catch {

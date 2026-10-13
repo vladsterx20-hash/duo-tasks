@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
 import type { ActiveTab, AppNotification, Period, Settings, Status, Task, User } from './types';
@@ -13,7 +13,8 @@ import { TasksScreen } from './components/TasksScreen';
 import { TaskForm } from './components/TaskForm';
 import { TaskDetail } from './components/TaskDetail';
 import { MapScreen } from './components/MapScreen';
-import { ChatScreen } from './components/ChatScreen';
+import { ChatList } from './components/ChatList';
+import { ChatConversation } from './components/ChatConversation';
 import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { CompleteSheet, type CompleteValues } from './components/CompleteSheet';
@@ -25,6 +26,7 @@ type Overlay =
   | { name: 'form'; taskId?: number }
   | { name: 'detail'; taskId: number }
   | { name: 'notifications' }
+  | { name: 'chat'; taskId: number }
   | { name: 'done' }
   | { name: 'profit' };
 
@@ -77,7 +79,32 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const [completing, setCompleting] = useState<Task | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [chatTaskId, setChatTaskId] = useState<number | null>(null);
+  // Какие сообщения в чатах уже прочитаны (последний прочитанный комментарий по задаче) — хранится на этом устройстве
+  const [seen, setSeen] = useState<Record<number, number>>(() => {
+    try {
+      const raw = localStorage.getItem('chatSeen');
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+  const baselineDone = useRef<boolean>(
+    (() => {
+      try {
+        return localStorage.getItem('chatSeen') !== null;
+      } catch {
+        return true;
+      }
+    })()
+  );
+  const saveSeen = (m: Record<number, number>) => {
+    setSeen(m);
+    try {
+      localStorage.setItem('chatSeen', JSON.stringify(m));
+    } catch {
+      /* ignore */
+    }
+  };
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
   const [toast, setToast] = useState('');
 
@@ -85,6 +112,28 @@ function AppInner({ onReady }: { onReady: () => void }) {
   useEffect(() => {
     if (state !== 'loading') onReady();
   }, [state, onReady]);
+
+  // Самый первый запуск на устройстве: уже существующие сообщения считаем прочитанными
+  useEffect(() => {
+    if (state !== 'ready' || baselineDone.current) return;
+    baselineDone.current = true;
+    const m: Record<number, number> = {};
+    tasks.forEach((t) => {
+      const l = t.comments[t.comments.length - 1];
+      if (l) m[t.id] = l.id;
+    });
+    saveSeen(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, tasks]);
+
+  // Пока открыт чат задачи, всё, что в нём есть и приходит, считается прочитанным
+  useEffect(() => {
+    if (overlay?.name !== 'chat') return;
+    const t = tasks.find((x) => x.id === overlay.taskId);
+    const l = t?.comments[t.comments.length - 1];
+    if (t && l && (seen[t.id] ?? 0) < l.id) saveSeen({ ...seen, [t.id]: l.id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlay, tasks, seen]);
 
   const showError = useCallback((e: unknown) => {
     setToast((e as Error).message || 'Ошибка');
@@ -270,6 +319,8 @@ function AppInner({ onReady }: { onReady: () => void }) {
     );
 
   const partner = users.find((u) => u.id !== me.id);
+  const unreadOf = (t: Task) => t.comments.filter((c) => c.author_id !== me.id && c.id > (seen[t.id] ?? 0)).length;
+  const chatUnread = tasks.reduce((s, t) => s + unreadOf(t), 0);
   const current = overlay && 'taskId' in overlay && overlay.taskId ? tasks.find((t) => t.id === overlay.taskId) : undefined;
   const refresh = () => load();
 
@@ -306,6 +357,19 @@ function AppInner({ onReady }: { onReady: () => void }) {
         onComment={(text) => addComment(current, text)}
         onDeleteComment={(cid) => deleteComment(current, cid)}
         onUpload={(files) => uploadFiles(current, files)}
+      />
+    );
+  } else if (overlay?.name === 'chat' && current) {
+    title = `Задача №${current.id}`;
+    content = (
+      <ChatConversation
+        key={current.id}
+        task={current}
+        users={users}
+        meId={me.id}
+        onSend={(text) => addComment(current, text)}
+        onUpload={(files) => uploadFiles(current, files)}
+        onOpenTask={() => setOverlay({ name: 'detail', taskId: current.id })}
       />
     );
   } else if (overlay?.name === 'done' || overlay?.name === 'profit') {
@@ -352,14 +416,13 @@ function AppInner({ onReady }: { onReady: () => void }) {
       content = <MapScreen tasks={tasks} tab={taskTab} onTab={setTaskTab} onList={() => setTab('tasks')} onOpen={openTask} />;
     } else if (tab === 'chat') {
       content = (
-        <ChatScreen
+        <ChatList
           tasks={tasks}
           users={users}
           meId={me.id}
-          taskId={chatTaskId}
-          onTaskId={setChatTaskId}
-          onSend={(t, text) => addComment(t, text)}
-          onUpload={(t, files) => uploadFiles(t, files)}
+          unread={unreadOf}
+          onOpen={(t) => setOverlay({ name: 'chat', taskId: t.id })}
+          onRefresh={refresh}
         />
       );
     } else {
@@ -403,7 +466,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         />
       )}
       <main className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '')}>{content}</main>
-      {showNav && <BottomNav tab={tab} onChange={setTab} />}
+      {showNav && <BottomNav tab={tab} onChange={setTab} chatUnread={chatUnread} />}
       {menuOpen && overlay?.name === 'detail' && current && <ActionMenu items={taskMenu(current)} onClose={() => setMenuOpen(false)} />}
       {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
       {completing && <CompleteSheet task={completing} users={users} onConfirm={confirmComplete} onClose={() => setCompleting(null)} />}

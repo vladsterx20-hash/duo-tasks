@@ -74,14 +74,17 @@ export function Home({ tasks, users, period, onPeriod, onOpen, onTake, onAll, on
           </div>
           <div className="stat-num">{doneCount}</div>
         </button>
-        <div className="stat">
+        <button className="stat" onClick={onAll} aria-label={`Активные задачи: ${activeCount}. Перейти к задачам`}>
+          <span className="card-chev dark">
+            <Icon name="chevron" size={18} strokeWidth={2.6} />
+          </span>
           <div className="stat-label">
             Активные
             <br />
             задачи
           </div>
           <div className="stat-num">{activeCount}</div>
-        </div>
+        </button>
       </div>
 
       <div className="section-head">

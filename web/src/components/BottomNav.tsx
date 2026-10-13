@@ -11,7 +11,7 @@ const ITEMS: { tab: Tab; icon: IconName; label: string }[] = [
 ];
 
 /** Карта открывается кнопкой «На карте» в задачах, поэтому, пока она открыта, подсвечиваем «Задачи» */
-export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+export function BottomNav({ tab, onChange, chatUnread = 0 }: { tab: Tab; onChange: (t: Tab) => void; chatUnread?: number }) {
   const active: Tab = tab === 'map' ? 'tasks' : tab;
   return (
     <nav className="nav" aria-label="Основное меню">
@@ -27,6 +27,7 @@ export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => v
           }}
         >
           <Icon name={i.icon} size={20} />
+          {i.tab === 'chat' && chatUnread > 0 && <span className="nav-dot" aria-label={`Непрочитанных сообщений: ${chatUnread}`} />}
           {active === i.tab && <span>{i.label}</span>}
         </button>
       ))}
