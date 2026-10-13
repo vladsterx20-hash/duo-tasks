@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { PRIORITY_LABEL } from '../types';
 import type { Task, User } from '../types';
-import { assigneesOf, fmtDue, fmtMoney, fmtSize, isOverdue, openFile, statusLabel } from '../utils';
+import { assigneesOf, fileKind, fmtDue, fmtMoney, fmtSize, isOverdue, openFile, statusLabel } from '../utils';
+import { FileViewer } from './FileViewer';
 import { AvatarStack } from './Avatar';
 import { Icon, type IconName } from './Icon';
 
@@ -33,6 +34,8 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const executors = assigneesOf(task, users);
+  const viewable = task.attachments.filter((a) => fileKind(a) !== 'other');
+  const [viewIdx, setViewIdx] = useState<number | null>(null);
 
   // Скрепка рядом с комментарием: фото и файлы прикрепляются к задаче
   async function pick(list: FileList | null) {
@@ -114,7 +117,16 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
           <h3 className="caps">Файлы · {task.attachments.length}</h3>
           <div className="files">
             {task.attachments.map((a) => (
-              <button key={a.id} className="file-item link" onClick={() => openFile(a.file_url)}>
+              <button
+                key={a.id}
+                className="file-item link"
+                onClick={() => {
+                  // фото и текст открываем прямо в приложении, остальное — во внешнем браузере
+                  const i = viewable.findIndex((v) => v.id === a.id);
+                  if (i >= 0) setViewIdx(i);
+                  else openFile(a.file_url);
+                }}
+              >
                 {a.file_type.startsWith('image/') ? <img src={a.file_url} alt="" /> : <span className="file-icon">📄</span>}
                 <span className="file-name">{a.file_name}</span>
                 <span className="muted">{fmtSize(a.size)}</span>
@@ -178,6 +190,10 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
           <Icon name="send" size={18} strokeWidth={3} />
         </button>
       </div>
+
+      {viewIdx !== null && viewable[viewIdx] && (
+        <FileViewer files={viewable} index={viewIdx} onIndex={setViewIdx} onClose={() => setViewIdx(null)} />
+      )}
     </div>
   );
 }

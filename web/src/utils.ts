@@ -84,6 +84,16 @@ export function openUrl(url: string) {
 
 export const openFile = (path: string) => openUrl(location.origin + path);
 
+/** Что умеет показать встроенный просмотрщик: фото и текстовые файлы; остальное открывается снаружи */
+export type FileKind = 'image' | 'text' | 'other';
+const TEXT_EXT = ['txt', 'md', 'log', 'csv', 'json', 'xml', 'yml', 'yaml', 'ini', 'html', 'css', 'js', 'ts', 'sql', 'conf'];
+export function fileKind(a: { file_type: string; file_name: string }): FileKind {
+  if (a.file_type.startsWith('image/')) return 'image';
+  const ext = a.file_name.split('.').pop()?.toLowerCase() ?? '';
+  if (a.file_type.startsWith('text/') || /json|xml|javascript/.test(a.file_type) || TEXT_EXT.includes(ext)) return 'text';
+  return 'other';
+}
+
 /** Маршрут до точки (бесплатная ссылка, без ключей) */
 export const openRoute = (lat: number, lng: number) =>
   openUrl(`https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`);

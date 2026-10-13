@@ -3,6 +3,7 @@ import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
 import type { ActiveTab, AppNotification, Period, Settings, Status, Task, User } from './types';
 import { applyTheme } from './theme';
+import { handleBack } from './backStack';
 import { haptic, inTelegram, openRoute, periodFrom } from './utils';
 import { CompletedList } from './components/CompletedList';
 import { ActionMenu, type MenuItem } from './components/ActionMenu';
@@ -179,6 +180,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
 
   // Кнопка «Назад» Telegram
   const back = useCallback(() => {
+    if (handleBack()) return; // открыт просмотрщик файла — «Назад» закрывает только его
     setOverlay((o) => (o?.name === 'form' && o.taskId ? { name: 'detail', taskId: o.taskId } : null));
   }, []);
   useEffect(() => {
