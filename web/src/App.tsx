@@ -465,7 +465,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const showNav = !overlay;
 
   return (
-    <div className={'app' + (fullBleed && !overlay ? ' bleed' : '')}>
+    <div className={'app' + (fullBleed && !overlay ? ' bleed' : '') + (overlay?.name === 'chat' ? ' chat-open' : '')}>
       {!(fullBleed && !overlay) && (
         <TopBar
           title={title}

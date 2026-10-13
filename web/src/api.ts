@@ -22,7 +22,13 @@ function headers(): Record<string, string> {
 }
 
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch('/api' + path, { ...init, headers: { ...headers(), ...(init.headers || {}) } });
+  let res: Response;
+  try {
+    res = await fetch('/api' + path, { ...init, headers: { ...headers(), ...(init.headers || {}) } });
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw e;
+    throw new ApiError(0, 'Нет связи с сервером. Проверьте интернет.');
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, body.error || 'Ошибка запроса');
   return body as T;
