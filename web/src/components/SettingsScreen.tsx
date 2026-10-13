@@ -34,12 +34,13 @@ const REMIND_OPTIONS: [number, string][] = [
   [1440, 'за сутки'],
 ];
 
-type Flag = 'n_assigned' | 'n_taken' | 'n_comment' | 'n_done' | 'n_remind';
+type Flag = 'n_assigned' | 'n_taken' | 'n_comment' | 'n_chat' | 'n_done' | 'n_remind';
 const FLAGS: { key: Flag; title: string }[] = [
   { key: 'n_assigned', title: 'Новая задача' },
   { key: 'n_taken', title: 'Задача взята в работу' },
   { key: 'n_done', title: 'Задача выполнена' },
-  { key: 'n_comment', title: 'Новый комментарий' },
+  { key: 'n_comment', title: 'Комментарий к задаче' },
+  { key: 'n_chat', title: 'Сообщение в чате' },
   { key: 'n_remind', title: 'Напоминание о сроке' },
 ];
 
@@ -88,7 +89,7 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
     }
   }
 
-  const setAll = (on: boolean) => save({ n_assigned: on, n_taken: on, n_done: on, n_comment: on, n_remind: on });
+  const setAll = (on: boolean) => save({ n_assigned: on, n_taken: on, n_done: on, n_comment: on, n_chat: on, n_remind: on });
 
   return (
     <div className="settings">

@@ -1,7 +1,7 @@
 import type { AppNotification } from '../types';
 import { fmtDue } from '../utils';
 
-const ICON: Record<AppNotification['kind'], string> = { assigned: '📝', taken: '🛠', done: '✅', comment: '💬' };
+const ICON: Record<AppNotification['kind'], string> = { assigned: '📝', taken: '🛠', done: '✅', comment: '💬', chat: '🗨' };
 
 interface Props {
   items: AppNotification[];

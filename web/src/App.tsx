@@ -119,7 +119,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
     baselineDone.current = true;
     const m: Record<number, number> = {};
     tasks.forEach((t) => {
-      const l = t.comments[t.comments.length - 1];
+      const l = t.chat[t.chat.length - 1];
       if (l) m[t.id] = l.id;
     });
     saveSeen(m);
@@ -130,7 +130,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   useEffect(() => {
     if (overlay?.name !== 'chat') return;
     const t = tasks.find((x) => x.id === overlay.taskId);
-    const l = t?.comments[t.comments.length - 1];
+    const l = t?.chat[t.chat.length - 1];
     if (t && l && (seen[t.id] ?? 0) < l.id) saveSeen({ ...seen, [t.id]: l.id });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlay, tasks, seen]);
@@ -267,6 +267,17 @@ function AppInner({ onReady }: { onReady: () => void }) {
     }
   }
 
+  // Сообщение в чате задачи — отдельный поток, не комментарий в карточке
+  async function sendChat(t: Task, text: string) {
+    try {
+      upsert(await api.addChatMessage(t.id, text));
+      haptic();
+    } catch (e) {
+      showError(e);
+      throw e;
+    }
+  }
+
   async function deleteComment(t: Task, cid: number) {
     try {
       upsert(await api.deleteComment(t.id, cid));
@@ -319,7 +330,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
     );
 
   const partner = users.find((u) => u.id !== me.id);
-  const unreadOf = (t: Task) => t.comments.filter((c) => c.author_id !== me.id && c.id > (seen[t.id] ?? 0)).length;
+  const unreadOf = (t: Task) => t.chat.filter((c) => c.author_id !== me.id && c.id > (seen[t.id] ?? 0)).length;
   const chatUnread = tasks.reduce((s, t) => s + unreadOf(t), 0);
   const current = overlay && 'taskId' in overlay && overlay.taskId ? tasks.find((t) => t.id === overlay.taskId) : undefined;
   const refresh = () => load();
@@ -367,7 +378,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         task={current}
         users={users}
         meId={me.id}
-        onSend={(text) => addComment(current, text)}
+        onSend={(text) => sendChat(current, text)}
         onUpload={(files) => uploadFiles(current, files)}
         onOpenTask={() => setOverlay({ name: 'detail', taskId: current.id })}
       />

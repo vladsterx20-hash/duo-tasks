@@ -25,7 +25,7 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
   // Прокручиваем к последнему сообщению при открытии и при новых сообщениях
   useEffect(() => {
     feedEnd.current?.scrollIntoView({ block: 'end' });
-  }, [task.id, task.comments.length]);
+  }, [task.id, task.chat.length]);
 
   async function send() {
     const v = text.trim();
@@ -71,7 +71,7 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
         </button>
 
         <div className="chat-feed">
-          {task.comments.length === 0 && (
+          {task.chat.length === 0 && (
             <div className="chat-empty">
               <Icon name="chat" size={30} />
               <div>
@@ -81,7 +81,7 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
               </div>
             </div>
           )}
-          {task.comments.map((c) => {
+          {task.chat.map((c) => {
             const mine = c.author_id === meId;
             const u = users.find((x) => x.id === c.author_id);
             return (

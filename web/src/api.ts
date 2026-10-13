@@ -44,6 +44,7 @@ export const api = {
     req<Task>(`/tasks/${id}/status`, json('POST', { status, ...extra })),
   addFiles: (id: number, fd: FormData) => req<Task>(`/tasks/${id}/files`, { method: 'POST', body: fd }),
   addComment: (id: number, text: string) => req<Task>(`/tasks/${id}/comments`, json('POST', { text })),
+  addChatMessage: (id: number, text: string) => req<Task>(`/tasks/${id}/chat`, json('POST', { text })),
   deleteComment: (id: number, cid: number) => req<Task>(`/tasks/${id}/comments/${cid}`, { method: 'DELETE' }),
   remove: (id: number) => req<{ ok: true }>(`/tasks/${id}`, { method: 'DELETE' }),
   notifyStatus: () => req<TgStatus>('/notify-status'),

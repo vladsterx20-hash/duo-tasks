@@ -22,7 +22,7 @@ function fmtShort(iso: string): string {
 /** Список задач как список чатов: номер, название, последнее сообщение, непрочитанные */
 export function ChatList({ tasks, users, meId, unread, onOpen, onRefresh }: Props) {
   const rows = useMemo(() => {
-    const last = (t: Task) => t.comments[t.comments.length - 1];
+    const last = (t: Task) => t.chat[t.chat.length - 1];
     // Сверху — задачи с самым свежим сообщением; без сообщений — по номеру (новые выше)
     return [...tasks].sort((a, b) => {
       const la = last(a) ? +new Date(last(a).created_at) : 0;
@@ -44,7 +44,7 @@ export function ChatList({ tasks, users, meId, unread, onOpen, onRefresh }: Prop
     <PullToRefresh onRefresh={onRefresh}>
       <div className="chat-list">
         {rows.map((t) => {
-          const m = t.comments[t.comments.length - 1];
+          const m = t.chat[t.chat.length - 1];
           const n = unread(t);
           const who = m ? (m.author_id === meId ? 'Вы' : users.find((u) => u.id === m.author_id)?.first_name ?? '') : '';
           return (

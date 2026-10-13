@@ -40,6 +40,7 @@ const KIND_COLUMN = {
   taken: 'n_taken',
   done: 'n_done',
   comment: 'n_comment',
+  chat: 'n_chat',
   remind: 'n_remind',
 };
 
@@ -125,6 +126,13 @@ export const notifyTaken = (userId, name, task) =>
 
 export const notifyDone =(userId, name, task) =>
   notify(userId, `✅ <b>${esc(name)}</b> выполнил(а) задачу:\n<b>${esc(task.title)}</b>`, 'done');
+
+export const notifyChat = (userId, name, task, text) =>
+  notify(
+    userId,
+    `🗨 <b>${esc(name)}</b> в чате задачи «${esc(task.title)}»:\n${esc(text.length > 300 ? text.slice(0, 300) + '…' : text)}`,
+    'chat'
+  );
 
 export const notifyComment = (userId, name, task, text) =>
   notify(

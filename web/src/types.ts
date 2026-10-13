@@ -44,6 +44,8 @@ export interface Task {
   attachments: Attachment[];
   priority: Priority;
   comments: Comment[];
+  /** Переписка в разделе «Чат» (отдельно от комментариев в карточке задачи) */
+  chat: Comment[];
   price: number;
   cost: number;
   /** фиксируется при завершении */
@@ -61,13 +63,14 @@ export interface Settings {
   n_taken: boolean;
   n_done: boolean;
   n_comment: boolean;
+  n_chat: boolean;
   n_remind: boolean;
   theme: Theme;
 }
 
 export interface AppNotification {
   id: number;
-  kind: 'assigned' | 'taken' | 'done' | 'comment';
+  kind: 'assigned' | 'taken' | 'done' | 'comment' | 'chat';
   task_id: number | null;
   text: string;
   read: boolean;

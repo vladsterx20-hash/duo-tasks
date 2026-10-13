@@ -46,6 +46,11 @@ export async function initDb() {
       created_at timestamptz not null default now()
     );
     create index if not exists comments_task_idx on comments(task_id);
+    -- Две независимые переписки по задаче: 'comment' (в карточке задачи) и 'chat' (раздел «Чат»)
+    alter table comments add column if not exists kind text not null default 'comment';
+    alter table comments drop constraint if exists comments_kind_check;
+    alter table comments add constraint comments_kind_check check (kind in ('comment','chat'));
+    alter table users add column if not exists n_chat boolean not null default true;
     alter table users add column if not exists remind_minutes int not null default 30;
     alter table users add column if not exists n_assigned boolean not null default true;
     alter table users add column if not exists n_done boolean not null default true;

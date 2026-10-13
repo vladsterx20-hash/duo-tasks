@@ -3,7 +3,7 @@ import multer from 'multer';
 import { pool } from './db.js';
 import { auth, fileToken } from './auth.js';
 import { ALLOWED, MAX_FILE } from './config.js';
-import { notifyAssigned, notifyTaken, notifyDone, notifyComment, deliver, canReach, botUsername } from './bot.js';
+import { notifyAssigned, notifyTaken, notifyDone, notifyComment, notifyChat, deliver, canReach, botUsername } from './bot.js';
 import { geocode, reverseGeocode } from './geo.js';
 
 export const api = express.Router();
@@ -46,7 +46,9 @@ const SELECT = `
          coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
                    order by a.id) from attachments a where a.task_id = t.id), '[]'::json) as attachments,
          coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
-                   order by c.id) from comments c where c.task_id = t.id), '[]'::json) as comments
+                   order by c.id) from comments c where c.task_id = t.id and c.kind = 'comment'), '[]'::json) as comments,
+         coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
+                   order by c.id) from comments c where c.task_id = t.id and c.kind = 'chat'), '[]'::json) as chat
   from tasks t`;
 
 async function fetchTasks(id) {
@@ -131,12 +133,12 @@ async function record(userId, kind, taskId, text) {
 
 // ---------- настройки ----------
 const REMIND_CHOICES = [5, 10, 15, 30, 60, 120, 1440];
-const SETTING_FLAGS = ['n_assigned', 'n_taken', 'n_done', 'n_comment', 'n_remind'];
+const SETTING_FLAGS = ['n_assigned', 'n_taken', 'n_done', 'n_comment', 'n_chat', 'n_remind'];
 const THEMES = ['dark', 'light'];
 
 async function getSettings(userId) {
   const { rows } = await pool.query(
-    'select remind_minutes, n_assigned, n_taken, n_done, n_comment, n_remind, theme from users where id=$1',
+    'select remind_minutes, n_assigned, n_taken, n_done, n_comment, n_chat, n_remind, theme from users where id=$1',
     [userId]
   );
   return rows[0];
@@ -161,9 +163,9 @@ api.put(
     if (REMIND_CHOICES.includes(Number(req.body.remind_minutes))) next.remind_minutes = Number(req.body.remind_minutes);
     if (THEMES.includes(req.body.theme)) next.theme = req.body.theme;
     await pool.query(
-      `update users set remind_minutes=$2, n_assigned=$3, n_taken=$4, n_done=$5, n_comment=$6, n_remind=$7, theme=$8
+      `update users set remind_minutes=$2, n_assigned=$3, n_taken=$4, n_done=$5, n_comment=$6, n_remind=$7, theme=$8, n_chat=$9
        where id=$1`,
-      [req.user.id, next.remind_minutes, next.n_assigned, next.n_taken, next.n_done, next.n_comment, next.n_remind, next.theme]
+      [req.user.id, next.remind_minutes, next.n_assigned, next.n_taken, next.n_done, next.n_comment, next.n_remind, next.theme, next.n_chat]
     );
     // Если сменили порог напоминания, пусть напоминания для будущих задач сработают заново
     if (next.remind_minutes !== cur.remind_minutes)
@@ -446,7 +448,7 @@ api.post(
     if (!text) return res.status(400).json({ error: 'Введите комментарий' });
     const [exists] = await fetchTasks(id);
     if (!exists) return res.status(404).json({ error: 'Задача не найдена' });
-    await pool.query('insert into comments (task_id, author_id, text) values ($1,$2,$3)', [id, req.user.id, text]);
+    await pool.query("insert into comments (task_id, author_id, text, kind) values ($1,$2,$3,'comment')", [id, req.user.id, text]);
     const [task] = await fetchTasks(id);
     res.json(task);
     const partner = partnerOf(req.user.id);
@@ -455,11 +457,29 @@ api.post(
   })
 );
 
+// Сообщение в чате задачи (раздел «Чат»): отдельная переписка, не связанная с комментариями в карточке задачи
+api.post(
+  '/tasks/:id/chat',
+  wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    const text = (req.body.text || '').trim().slice(0, 2000);
+    if (!text) return res.status(400).json({ error: 'Введите сообщение' });
+    const [exists] = await fetchTasks(id);
+    if (!exists) return res.status(404).json({ error: 'Задача не найдена' });
+    await pool.query("insert into comments (task_id, author_id, text, kind) values ($1,$2,$3,'chat')", [id, req.user.id, text]);
+    const [task] = await fetchTasks(id);
+    res.json(task);
+    const partner = partnerOf(req.user.id);
+    record(partner, 'chat', id, `${req.user.first_name} · чат «${task.title}»: ${text}`);
+    notifyChat(partner, req.user.first_name, task, text);
+  })
+);
+
 api.delete(
   '/tasks/:id/comments/:cid',
   wrap(async (req, res) => {
     const id = Number(req.params.id);
-    await pool.query('delete from comments where id=$1 and task_id=$2 and author_id=$3', [
+    await pool.query("delete from comments where id=$1 and task_id=$2 and author_id=$3 and kind='comment'", [
       Number(req.params.cid),
       id,
       req.user.id,
