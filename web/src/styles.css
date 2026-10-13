@@ -738,3 +738,9 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .picker-actions { grid-template-columns: auto 1fr; align-items: center; gap: 10px; }
 .picker-actions .primary, .picker-actions .secondary { margin: 0; width: 100%; min-height: 46px; font-size: 14px; }
 .picker-actions .secondary { width: auto; padding: 0 22px; }
+
+/* Окно карты: ещё компактнее — небольшие кнопки справа, без растягивания на всю ширину */
+.picker-bar { padding: 12px 14px; border-radius: 22px; }
+.picker-label { font-size: 12.5px; line-height: 1.35; margin: 0 2px 10px; }
+.picker-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.picker-actions .primary, .picker-actions .secondary { width: auto; min-height: 38px; padding: 0 20px; font-size: 13px; border-radius: 999px; }
