@@ -371,7 +371,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
       />
     );
   } else if (overlay?.name === 'chat' && current) {
-    title = 'Чат'; // номер задачи виден в карточке ниже
+    title = 'Чат к задаче'; // одинаково для каждой задачи; номер виден в карточке ниже
     content = (
       <ChatConversation
         key={current.id}
