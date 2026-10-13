@@ -25,12 +25,11 @@ function initialChoice(task: Task | undefined, me: User): AssigneeChoice {
 }
 
 export function TaskForm({ task, me, partner, onSaved }: Props) {
-  const initialDue = toLocalInput(task?.due_at ?? null);
   const [title, setTitle] = useState(task?.title ?? '');
   const [customer, setCustomer] = useState(task?.customer ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
-  const [date, setDate] = useState(initialDue.slice(0, 10));
-  const [time, setTime] = useState(initialDue.slice(11, 16));
+  // Срок одним полем: «YYYY-MM-DDTHH:MM» (дата и время вместе)
+  const [due, setDue] = useState(toLocalInput(task?.due_at ?? null));
   const [addr, setAddr] = useState<AddressValue>({
     address: task?.address ?? '',
     lat: task?.lat ?? null,
@@ -102,8 +101,7 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
       fd.set('title', title.trim());
       fd.set('customer', customer.trim());
       fd.set('description', description);
-      // Если указана дата без времени — берём 18:00
-      fd.set('due_at', date ? new Date(`${date}T${time || '18:00'}`).toISOString() : '');
+      fd.set('due_at', due ? new Date(due).toISOString() : '');
       fd.set('assignee', assignee);
       fd.set('priority', priority);
       fd.set('price', String(toNum(price)));
@@ -163,7 +161,6 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Название задачи"
         maxLength={200}
-        autoFocus={!task}
       />
 
       <label className="field-label" htmlFor="f-customer">Заказчик</label>
@@ -180,16 +177,8 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
       <label className="field-label" htmlFor="f-desc">Описание</label>
       <textarea id="f-desc" className="field" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Описание" />
 
-      <div className="two-cols">
-        <div>
-          <span className="field-label">Срок</span>
-          <PickerField type="date" value={date} onChange={setDate} label="Срок: дата" placeholder="Выберите дату" />
-        </div>
-        <div>
-          <span className="field-label">Время</span>
-          <PickerField type="time" value={time} onChange={setTime} label="Срок: время" placeholder="Выберите время" />
-        </div>
-      </div>
+      <span className="field-label">Срок</span>
+      <PickerField type="datetime-local" value={due} onChange={setDue} label="Срок: дата и время" placeholder="Выберите дату и время" />
 
       <label className="field-label">Исполнитель</label>
       <div className="seg-pill small">

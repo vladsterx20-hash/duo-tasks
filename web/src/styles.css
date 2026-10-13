@@ -680,3 +680,11 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .tg-actions .small { min-height: 46px; font-size: 14px; flex: 1; }
 :root[data-theme='light'] .tg-status.ok { color: #1f8a33; }
 .tg-actions .secondary { background: var(--card-2); border: 1px solid var(--line); }
+
+/* Поле «Срок»: плейсхолдер больше не использует класс .empty (он добавлял отступы 56px и раздувал поле) */
+.pf-text.pf-placeholder { color: var(--hint); }
+.picker-field { height: auto; }
+.picker-field > svg { width: 18px; height: 18px; }
+.pf-clear svg { width: 14px; height: 14px; }
+.picker-field { padding-top: 0; padding-bottom: 0; }
+.pf-clear { width: 26px; height: 26px; }
