@@ -14,6 +14,9 @@ export interface Attachment {
 }
 
 export type Status = 'new' | 'in_progress' | 'done';
+/** Вкладки списка задач (завершённые вынесены на главную) */
+export type ActiveTab = 'new' | 'in_progress';
+export type Period = 'week' | 'month' | 'all';
 export type Priority = 'low' | 'normal' | 'high';
 export type Theme = 'dark' | 'light';
 

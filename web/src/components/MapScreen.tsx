@@ -1,20 +1,35 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
-import type { Task } from '../types';
+import type { ActiveTab, Task } from '../types';
 import { fmtDue, openRoute } from '../utils';
 import { createMap, DEFAULT_CENTER, meIcon, pinIcon } from '../mapUtils';
 import { canOpenLocationSettings, openLocationSettings, watchPosition, type GeoFix, type GeoProblem } from '../geolocation';
 import { Icon } from './Icon';
 
-export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void }) {
+interface Props {
+  tasks: Task[];
+  tab: ActiveTab;
+  onTab: (t: ActiveTab) => void;
+  onList: () => void;
+  onOpen: (t: Task) => void;
+}
+
+const TABS: [ActiveTab, string][] = [
+  ['new', 'Новые'],
+  ['in_progress', 'В работе'],
+];
+
+export function MapScreen({ tasks, tab, onTab, onList, onOpen }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
   const fitted = useRef(false);
   const [selId, setSelId] = useState<number | null>(null);
 
-  const pts = useMemo(() => tasks.filter((t) => t.lat !== null && t.lng !== null), [tasks]);
+  // На карте — задачи выбранной вкладки (новые или в работе), у которых есть точка
+  const pts = useMemo(() => tasks.filter((t) => t.status === tab && t.lat !== null && t.lng !== null), [tasks, tab]);
   const selected = pts.find((t) => t.id === selId);
+  const countOn = (s: ActiveTab) => tasks.filter((t) => t.status === s && t.lat !== null && t.lng !== null).length;
 
   useEffect(() => {
     const map = createMap(el.current!, DEFAULT_CENTER, 10);
@@ -29,24 +44,29 @@ export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) 
     };
   }, []);
 
+  // Сменили вкладку — сбрасываем выбор и заново подгоняем карту под метки
+  useEffect(() => {
+    setSelId(null);
+    fitted.current = false;
+  }, [tab]);
+
   useEffect(() => {
     const map = mapRef.current;
     const group = layer.current;
     if (!map || !group) return;
     group.clearLayers();
     pts.forEach((t) => {
-      const cls = (t.id === selId ? 'sel ' : '') + (t.status === 'done' ? 'done' : '');
-      L.marker([t.lat!, t.lng!], { icon: pinIcon(String(t.id), cls), keyboard: false })
+      L.marker([t.lat!, t.lng!], { icon: pinIcon(String(t.id), t.id === selId ? 'sel' : ''), keyboard: false })
         .on('click', () => setSelId(t.id))
         .addTo(group);
     });
     if (!fitted.current && pts.length) {
-      map.fitBounds(L.latLngBounds(pts.map((t) => [t.lat!, t.lng!] as [number, number])), { padding: [60, 60], maxZoom: 16 });
+      map.fitBounds(L.latLngBounds(pts.map((t) => [t.lat!, t.lng!] as [number, number])), { padding: [70, 70], maxZoom: 16 });
       fitted.current = true;
     }
   }, [pts, selId]);
 
-  // Моя геопозиция: следим, пока открыта карта; уходим с вкладки — слежение останавливается
+  // Моя геопозиция: следим, пока открыта карта; уходим с экрана — слежение останавливается
   const [problem, setProblem] = useState<GeoProblem | null>(null);
   const [located, setLocated] = useState(false);
   const fix = useRef<GeoFix | null>(null);
@@ -91,17 +111,25 @@ export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) 
   return (
     <div className="map-screen">
       <div ref={el} className="map" />
-      <button className="locate-btn" onClick={goToMe} disabled={!located} aria-label="Где я">
-        <Icon name="locate" size={20} />
-      </button>
-      <div className="zoom-ctl" role="group" aria-label="Масштаб карты">
+
+      <div className="map-tabs seg-pill two" role="tablist" aria-label="Статус задач на карте">
+        {TABS.map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => onTab(k)}>
+            {label}
+            <span className="badge">{countOn(k)}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="map-zoom" role="group" aria-label="Масштаб карты">
         <button onClick={() => mapRef.current?.zoomIn()} aria-label="Приблизить карту">
-          <Icon name="plus" size={22} strokeWidth={2.5} />
+          <Icon name="plus" size={24} strokeWidth={2.6} />
         </button>
         <button onClick={() => mapRef.current?.zoomOut()} aria-label="Отдалить карту">
-          <Icon name="minus" size={22} strokeWidth={2.5} />
+          <Icon name="minus" size={24} strokeWidth={2.6} />
         </button>
       </div>
+
       {problem && !located && (
         <div className="geo-note" role="status">
           <span>
@@ -118,7 +146,12 @@ export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) 
           )}
         </div>
       )}
-      {pts.length === 0 && <div className="map-empty">Пока нет задач с адресом.<br />Укажите адрес при создании задачи.</div>}
+      {pts.length === 0 && (
+        <div className="map-empty">
+          {tab === 'new' ? 'Нет новых задач с точкой на карте' : 'Нет задач в работе с точкой на карте'}
+        </div>
+      )}
+
       {selected && (
         <div className="map-card">
           <button className="map-card-main" onClick={() => onOpen(selected)}>
@@ -126,9 +159,7 @@ export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) 
             <span className="map-card-text">
               <b className="ellipsis">{selected.title}</b>
               <span className="muted ellipsis">{selected.address || 'Адрес не указан'}</span>
-              <b className="map-due">
-                {selected.status === 'done' ? 'Завершена' : `Выполнить до ${fmtDue(selected.due_at)}`}
-              </b>
+              <b className="map-due">Выполнить до {fmtDue(selected.due_at)}</b>
             </span>
           </button>
           <button className="route-btn" onClick={() => openRoute(selected.lat!, selected.lng!)}>
@@ -136,6 +167,13 @@ export function MapScreen({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) 
           </button>
         </div>
       )}
+
+      <button className="float-btn left" onClick={onList}>
+        <Icon name="list" size={18} strokeWidth={2.4} /> Список
+      </button>
+      <button className="map-loc" onClick={goToMe} disabled={!located} aria-label="Где я">
+        <Icon name="locate" size={24} strokeWidth={2.4} />
+      </button>
     </div>
   );
 }

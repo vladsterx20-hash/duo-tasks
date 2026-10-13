@@ -17,7 +17,18 @@ export function fmtDue(iso: string | null): string {
 
 export const isOverdue = (t: Task) => t.status !== 'done' && !!t.due_at && new Date(t.due_at).getTime() < Date.now();
 
-export const fmtMoney = (n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) + ' ₽';
+const DAY_MS = 86_400_000;
+/** Начало периода (мс): неделя = 7 суток, месяц = 30 суток */
+export const periodFrom = (p: 'week' | 'month' | 'all') => (p === 'all' ? 0 : Date.now() - (p === 'week' ? 7 : 30) * DAY_MS);
+export const periodLabel = { week: 'за неделю', month: 'за месяц', all: 'за всё время' } as const;
+
+/** Сумма со знаком: «+12 500 ₽» / «−3 000 ₽» */
+export function fmtSigned(n: number): string {
+  const abs = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(Math.abs(n));
+  return `${n < 0 ? '−' : '+'}${abs} ₽`;
+}
+
+export const fmtMoney =(n: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) + ' ₽';
 
 /** Только цифры и одна точка, до 2 знаков после неё (отрицательных нет) */
 export function cleanMoney(s: string): string {

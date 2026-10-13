@@ -1,32 +1,35 @@
-import { useMemo, useState } from 'react';
-import type { Task, User } from '../types';
-import { fmtMoney } from '../utils';
+import { useMemo } from 'react';
+import type { Period, Task, User } from '../types';
+import { fmtMoney, periodFrom } from '../utils';
+import { Icon } from './Icon';
 import { PullToRefresh } from './PullToRefresh';
 import { TaskCard } from './TaskCard';
 
-type Period = 'week' | 'month' | 'all';
 const PERIODS: [Period, string][] = [
   ['week', 'Неделя'],
   ['month', 'Месяц'],
   ['all', 'Всё время'],
 ];
-const DAY = 86_400_000;
 
 interface Props {
   tasks: Task[];
   users: User[];
+  period: Period;
+  onPeriod: (p: Period) => void;
   onOpen: (t: Task) => void;
   onTake: (t: Task) => void;
   onAll: () => void;
+  /** Список завершённых задач за период (кнопка «Сделанные задачи») */
+  onOpenDone: () => void;
+  /** Завершённые задачи с прибылью по каждой (кнопка «Прибыль с заказов») */
+  onOpenProfit: () => void;
   onRefresh: () => Promise<void>;
 }
 
-export function Home({ tasks, users, onOpen, onTake, onAll, onRefresh }: Props) {
-  const [period, setPeriod] = useState<Period>('month');
-
+export function Home({ tasks, users, period, onPeriod, onOpen, onTake, onAll, onOpenDone, onOpenProfit, onRefresh }: Props) {
   // Прибыль и «сделанные» — только завершённые задачи, по дате завершения в выбранном периоде
   const { profit, doneCount } = useMemo(() => {
-    const from = period === 'all' ? 0 : Date.now() - (period === 'week' ? 7 : 30) * DAY;
+    const from = periodFrom(period);
     const inPeriod = tasks.filter((t) => t.status === 'done' && t.completed_at && new Date(t.completed_at).getTime() >= from);
     return { profit: inPeriod.reduce((s, t) => s + (t.profit ?? 0), 0), doneCount: inPeriod.length };
   }, [tasks, period]);
@@ -45,26 +48,32 @@ export function Home({ tasks, users, onOpen, onTake, onAll, onRefresh }: Props) 
     <PullToRefresh onRefresh={onRefresh}>
       <div className="seg-pill" role="tablist" aria-label="Период">
         {PERIODS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={period === k} className={period === k ? 'active' : ''} onClick={() => setPeriod(k)}>
+          <button key={k} role="tab" aria-selected={period === k} className={period === k ? 'active' : ''} onClick={() => onPeriod(k)}>
             {label}
           </button>
         ))}
       </div>
 
-      <section className="profit-card" aria-label="Прибыль с заказов">
+      <button className="profit-card" onClick={onOpenProfit} aria-label={`Прибыль с заказов: ${fmtMoney(profit)}. Открыть список`}>
+        <span className="card-chev">
+          <Icon name="chevron" size={20} strokeWidth={2.6} />
+        </span>
         <div className="profit-label">Прибыль с заказов</div>
         <div className="profit-sum">{fmtMoney(profit)}</div>
-      </section>
+      </button>
 
       <div className="stats">
-        <div className="stat">
+        <button className="stat" onClick={onOpenDone} aria-label={`Сделанные задачи: ${doneCount}. Открыть список`}>
+          <span className="card-chev dark">
+            <Icon name="chevron" size={18} strokeWidth={2.6} />
+          </span>
           <div className="stat-label">
             Сделанные
             <br />
             задачи
           </div>
           <div className="stat-num">{doneCount}</div>
-        </div>
+        </button>
         <div className="stat">
           <div className="stat-label">
             Активные

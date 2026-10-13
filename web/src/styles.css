@@ -517,3 +517,53 @@ textarea.field { resize: vertical; display: block; }
 .about p { margin: 0; font-size: 15px; line-height: 1.5; font-weight: 500; }
 .about .about-last { font-weight: 800; color: var(--accent); }
 .about .primary { margin-top: 12px; }
+
+/* =====================================================================
+   v5: «На карте» / «Список», стиль кнопок карты, клики по карточкам главной, окно завершения
+   ===================================================================== */
+
+/* Две вкладки — по центру страницы */
+.seg-pill.two { max-width: 300px; margin-left: auto; margin-right: auto; }
+
+/* Плавающая кнопка слева над меню */
+.float-btn { position: fixed; z-index: 90; left: 16px; bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); min-height: 48px; padding: 0 20px; border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 38%, transparent), 0 2px 6px rgba(0, 0, 0, 0.3); }
+
+/* Карта: вкладки сверху, зум справа, геолокация справа снизу */
+.map-tabs.seg-pill.two { position: absolute; z-index: 30; top: calc(14px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(300px, calc(100% - 32px)); margin: 0; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); }
+.map-zoom { position: absolute; z-index: 30; right: 16px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; }
+.map-zoom button, .map-loc { width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); }
+.map-zoom button { background: var(--nav); color: #fff; }
+.map-zoom button:active { background: var(--accent); color: var(--accent-text); }
+.map-loc { position: absolute; z-index: 30; right: 16px; bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); background: var(--accent); color: var(--accent-text); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 38%, transparent), 0 2px 6px rgba(0, 0, 0, 0.3); }
+.map-loc:disabled { background: var(--nav); color: var(--hint); opacity: 1; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); }
+.map-card { bottom: calc(var(--nav-h) + 86px + env(safe-area-inset-bottom)); }
+.map-empty { top: calc(70px + env(safe-area-inset-top)); }
+.geo-note { top: calc(126px + env(safe-area-inset-top)); padding: 10px 16px; }
+.zoom-ctl, .locate-btn { display: none; }
+
+/* Кликабельные карточки на главной */
+button.profit-card, button.stat { position: relative; width: 100%; text-align: left; border: 0; font: inherit; cursor: pointer; display: block; }
+button.profit-card:active:not(:disabled), button.stat:active:not(:disabled) { transform: scale(0.98); }
+.card-chev { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: rgba(17, 17, 17, 0.14); color: #111; }
+.card-chev.dark { top: 12px; right: 12px; width: 28px; height: 28px; background: #efefef; }
+.profit-card.static { cursor: default; }
+.profit-count { font-size: 12.5px; font-weight: 700; margin-top: 8px; opacity: 0.8; }
+
+/* Списки завершённых задач и прибыли */
+.done-list { display: flex; flex-direction: column; }
+.done-sub { margin: 0 4px 12px; }
+button.profit-row { width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; border: 0; font: inherit; margin-bottom: 12px; }
+.profit-row .card-body { display: flex; flex-direction: column; gap: 3px; }
+.profit-row .card-customer, .profit-row .card-due { margin-top: 0; }
+.profit-amount { flex: none; font-size: 16px; font-weight: 800; color: var(--accent); white-space: nowrap; }
+.profit-amount.neg { color: var(--danger); }
+
+/* Окно «Задача выполнена» (отдельное, по центру) */
+.modal-back { position: fixed; inset: 0; z-index: 420; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, 0.65); animation: fade 0.2s ease both; }
+.modal { width: 100%; max-width: 440px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; background: var(--card); border-radius: 28px; padding: 20px; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55); animation: modal-in 0.25s var(--ease) both; }
+.modal .dcard { background: var(--card-2); }
+.modal .field { background: var(--card-2); }
+.modal-info { margin-top: 16px; }
+.modal .primary { margin-top: 18px; }
+.modal .secondary.cancel { margin-top: 8px; background: transparent; color: var(--hint); }
+@keyframes modal-in { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }

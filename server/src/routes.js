@@ -381,19 +381,27 @@ api.post(
     const [before] = await fetchTasks(id);
     if (!before) return res.status(404).json({ error: 'Задача не найдена' });
 
+    // При завершении можно уточнить стоимость и себестоимость (окно «Задача выполнена»)
+    const price = parseMoney(req.body.price);
+    const cost = parseMoney(req.body.cost);
+    if (price === null) return res.status(400).json({ error: 'Неверная стоимость' });
+    if (cost === null) return res.status(400).json({ error: 'Неверная себестоимость' });
+
     // Прибыль фиксируется при завершении: переданная сумма или «стоимость − себестоимость»
     let profit = null;
     if (status === 'done') {
       const given = req.body.profit === undefined || req.body.profit === '' ? NaN : Number(req.body.profit);
-      profit = Number.isFinite(given) && Math.abs(given) <= 1e9 ? Math.round(given * 100) / 100 : before.price - before.cost;
+      const fallback = (price ?? before.price) - (cost ?? before.cost);
+      profit = Number.isFinite(given) && Math.abs(given) <= 1e9 ? Math.round(given * 100) / 100 : fallback;
     }
 
     await pool.query(
       `update tasks set status=$2, profit=$3,
          completed_at = case when $2='done' then now() else null end,
-         taken_by = case when $2='in_progress' then $4::bigint else taken_by end
+         taken_by = case when $2='in_progress' then $4::bigint else taken_by end,
+         price = coalesce($5::numeric, price), cost = coalesce($6::numeric, cost)
        where id=$1`,
-      [id, status, profit, req.user.id]
+      [id, status, profit, req.user.id, price ?? null, cost ?? null]
     );
     if (before.status === 'done' && status !== 'done') await pool.query('delete from reminders_sent where task_id=$1', [id]);
 

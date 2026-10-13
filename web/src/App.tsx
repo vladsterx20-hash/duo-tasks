@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
-import type { AppNotification, Settings, Status, Task, User } from './types';
+import type { ActiveTab, AppNotification, Period, Settings, Status, Task, User } from './types';
 import { applyTheme } from './theme';
-import { haptic, inTelegram, openRoute } from './utils';
+import { haptic, inTelegram, openRoute, periodFrom } from './utils';
+import { CompletedList } from './components/CompletedList';
 import { ActionMenu, type MenuItem } from './components/ActionMenu';
 import { BottomNav, type Tab } from './components/BottomNav';
 import { AddButton, BellButton, MoreButton, TopBar } from './components/TopBar';
@@ -15,11 +16,17 @@ import { MapScreen } from './components/MapScreen';
 import { ChatScreen } from './components/ChatScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
-import { CompleteSheet } from './components/CompleteSheet';
+import { CompleteSheet, type CompleteValues } from './components/CompleteSheet';
 import { Splash } from './components/Splash';
 import { About } from './components/About';
 
-type Overlay = null | { name: 'form'; taskId?: number } | { name: 'detail'; taskId: number } | { name: 'notifications' };
+type Overlay =
+  | null
+  | { name: 'form'; taskId?: number }
+  | { name: 'detail'; taskId: number }
+  | { name: 'notifications' }
+  | { name: 'done' }
+  | { name: 'profit' };
 
 const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
 const SYNC_MS = 30_000;
@@ -64,7 +71,8 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [notes, setNotes] = useState<{ items: AppNotification[]; unread: number }>({ items: [], unread: 0 });
   const [tab, setTab] = useState<Tab>('home');
-  const [taskTab, setTaskTab] = useState<Status>('new');
+  const [taskTab, setTaskTab] = useState<ActiveTab>('new');
+  const [period, setPeriod] = useState<Period>('month');
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [completing, setCompleting] = useState<Task | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -138,12 +146,19 @@ function AppInner({ onReady }: { onReady: () => void }) {
     else WebApp.BackButton.hide();
   }, [overlay]);
 
-  async function changeStatus(t: Task, status: Status, profit?: number) {
+  async function changeStatus(t: Task, status: Status, extra?: { profit?: number; price?: number; cost?: number }) {
     const before = t;
-    upsert({ ...t, status }); // оптимистично
+    // оптимистично
+    upsert({
+      ...t,
+      status,
+      ...(extra?.price !== undefined ? { price: extra.price } : {}),
+      ...(extra?.cost !== undefined ? { cost: extra.cost } : {}),
+      ...(status === 'done' ? { profit: extra?.profit ?? t.price - t.cost, completed_at: new Date().toISOString() } : {}),
+    });
     haptic(status === 'done' ? 'success' : 'light');
     try {
-      upsert(await api.setStatus(t.id, status, profit));
+      upsert(await api.setStatus(t.id, status, extra));
     } catch (e) {
       upsert(before);
       showError(e);
@@ -153,15 +168,23 @@ function AppInner({ onReady }: { onReady: () => void }) {
 
   const take = (t: Task) => changeStatus(t, 'in_progress').catch(() => {});
 
-  async function confirmComplete(profit: number) {
+  async function confirmComplete(v: CompleteValues) {
     if (!completing) return;
     try {
-      await changeStatus(completing, 'done', profit);
+      await changeStatus(completing, 'done', v);
       setCompleting(null);
     } catch {
       /* окно остаётся открытым, ошибка показана */
     }
   }
+
+  // Завершённые задачи за выбранный на главной период, новые сверху
+  const doneInPeriod = () => {
+    const from = periodFrom(period);
+    return tasks
+      .filter((t) => t.status === 'done' && t.completed_at && new Date(t.completed_at).getTime() >= from)
+      .sort((a, b) => +new Date(b.completed_at!) - +new Date(a.completed_at!));
+  };
 
   async function remove(t: Task) {
     try {
@@ -285,6 +308,10 @@ function AppInner({ onReady }: { onReady: () => void }) {
         onUpload={(files) => uploadFiles(current, files)}
       />
     );
+  } else if (overlay?.name === 'done' || overlay?.name === 'profit') {
+    const profitMode = overlay.name === 'profit';
+    title = profitMode ? 'Прибыль с заказов' : 'Сделанные задачи';
+    content = <CompletedList tasks={doneInPeriod()} users={users} period={period} showProfit={profitMode} onOpen={openTask} />;
   } else if (overlay?.name === 'notifications') {
     title = 'Уведомления';
     content = <NotificationsScreen items={notes.items} onOpenTask={(id) => setOverlay({ name: 'detail', taskId: id })} />;
@@ -295,9 +322,13 @@ function AppInner({ onReady }: { onReady: () => void }) {
         <Home
           tasks={tasks}
           users={users}
+          period={period}
+          onPeriod={setPeriod}
           onOpen={openTask}
           onTake={take}
           onAll={() => setTab('tasks')}
+          onOpenDone={() => setOverlay({ name: 'done' })}
+          onOpenProfit={() => setOverlay({ name: 'profit' })}
           onRefresh={refresh}
         />
       );
@@ -312,12 +343,13 @@ function AppInner({ onReady }: { onReady: () => void }) {
           onTab={setTaskTab}
           onOpen={openTask}
           onTake={take}
+          onMap={() => setTab('map')}
           onRefresh={refresh}
         />
       );
     } else if (tab === 'map') {
       fullBleed = true;
-      content = <MapScreen tasks={tasks} onOpen={openTask} />;
+      content = <MapScreen tasks={tasks} tab={taskTab} onTab={setTaskTab} onList={() => setTab('tasks')} onOpen={openTask} />;
     } else if (tab === 'chat') {
       content = (
         <ChatScreen
@@ -374,7 +406,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
       {showNav && <BottomNav tab={tab} onChange={setTab} />}
       {menuOpen && overlay?.name === 'detail' && current && <ActionMenu items={taskMenu(current)} onClose={() => setMenuOpen(false)} />}
       {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
-      {completing && <CompleteSheet task={completing} onConfirm={confirmComplete} onClose={() => setCompleting(null)} />}
+      {completing && <CompleteSheet task={completing} users={users} onConfirm={confirmComplete} onClose={() => setCompleting(null)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

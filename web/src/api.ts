@@ -32,8 +32,8 @@ export const api = {
   tasks: () => req<Task[]>('/tasks'),
   create: (fd: FormData) => req<Task>('/tasks', { method: 'POST', body: fd }),
   update: (id: number, fd: FormData) => req<Task>(`/tasks/${id}`, { method: 'PATCH', body: fd }),
-  setStatus: (id: number, status: Status, profit?: number) =>
-    req<Task>(`/tasks/${id}/status`, json('POST', { status, profit })),
+  setStatus: (id: number, status: Status, extra?: { profit?: number; price?: number; cost?: number }) =>
+    req<Task>(`/tasks/${id}/status`, json('POST', { status, ...extra })),
   addFiles: (id: number, fd: FormData) => req<Task>(`/tasks/${id}/files`, { method: 'POST', body: fd }),
   addComment: (id: number, text: string) => req<Task>(`/tasks/${id}/comments`, json('POST', { text })),
   deleteComment: (id: number, cid: number) => req<Task>(`/tasks/${id}/comments/${cid}`, { method: 'DELETE' }),
