@@ -127,6 +127,23 @@ function AppInner({ onReady }: { onReady: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, tasks]);
 
+  // Если базу очистили и нумерация пошла заново, старые отметки «прочитано» могут оказаться больше номеров
+  // новых сообщений и скрыть их как прочитанные — подрезаем такие отметки
+  useEffect(() => {
+    if (state !== 'ready') return;
+    let changed = false;
+    const m = { ...seen };
+    for (const t of tasks) {
+      const last = t.chat[t.chat.length - 1]?.id ?? 0;
+      if ((m[t.id] ?? 0) > last) {
+        m[t.id] = last;
+        changed = true;
+      }
+    }
+    if (changed) saveSeen(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, tasks]);
+
   // Пока открыт чат задачи, всё, что в нём есть и приходит, считается прочитанным
   useEffect(() => {
     if (overlay?.name !== 'chat') return;
