@@ -3,7 +3,7 @@ import multer from 'multer';
 import { pool } from './db.js';
 import { auth, fileToken } from './auth.js';
 import { ALLOWED, MAX_FILE } from './config.js';
-import { notifyAssigned, notifyTaken, notifyDone, notifyComment } from './bot.js';
+import { notifyAssigned, notifyTaken, notifyDone, notifyComment, deliver, canReach, botUsername } from './bot.js';
 import { geocode, reverseGeocode } from './geo.js';
 
 export const api = express.Router();
@@ -204,6 +204,23 @@ api.get(
   })
 );
 
+// ---------- проверка связи с ботом (уведомления в чат Telegram) ----------
+api.get(
+  '/notify-status',
+  wrap(async (req, res) => {
+    const r = await canReach(req.user.id);
+    res.json({ ...r, bot: await botUsername() });
+  })
+);
+
+api.post(
+  '/notify-test',
+  wrap(async (req, res) => {
+    const r = await deliver(req.user.id, '🔔 Проверка: уведомления работают. Сообщения о задачах будут приходить сюда.');
+    res.json({ ...r, bot: await botUsername() });
+  })
+);
+
 // ---------- уведомления внутри приложения ----------
 api.get(
   '/notifications',
@@ -298,7 +315,8 @@ api.post(
     res.json(task);
     const partner = partnerOf(req.user.id);
     record(partner, 'assigned', task.id, `${req.user.first_name} создал(а) задачу «${task.title}»`);
-    if (includesPartner(task.assignee_id, req.user.id)) notifyAssigned(partner, req.user.first_name, task);
+    // Партнёр получает сообщение о каждой новой задаче (так же, как запись в «Уведомлениях» в приложении)
+    notifyAssigned(partner, req.user.first_name, task, includesPartner(task.assignee_id, req.user.id));
   })
 );
 

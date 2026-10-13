@@ -1,6 +1,14 @@
 import WebApp from '@twa-dev/sdk';
 import type { AppNotification, GeoResult, Settings, Status, Task, User } from './types';
 
+/** Связь с ботом: может ли он писать пользователю в чат Telegram */
+export interface TgStatus {
+  ok: boolean;
+  reason?: 'not_started' | 'blocked' | 'error';
+  message?: string;
+  bot?: string;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -38,6 +46,8 @@ export const api = {
   addComment: (id: number, text: string) => req<Task>(`/tasks/${id}/comments`, json('POST', { text })),
   deleteComment: (id: number, cid: number) => req<Task>(`/tasks/${id}/comments/${cid}`, { method: 'DELETE' }),
   remove: (id: number) => req<{ ok: true }>(`/tasks/${id}`, { method: 'DELETE' }),
+  notifyStatus: () => req<TgStatus>('/notify-status'),
+  notifyTest: () => req<TgStatus>('/notify-test', { method: 'POST' }),
   notifications: () => req<{ items: AppNotification[]; unread: number }>('/notifications'),
   readNotifications: () => req<{ ok: true }>('/notifications/read', { method: 'POST' }),
   geocode: (q: string, signal?: AbortSignal) => req<GeoResult[]>(`/geocode?q=${encodeURIComponent(q)}`, { signal }),

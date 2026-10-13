@@ -1,9 +1,22 @@
-import { useState } from 'react';
-import { api } from '../api';
+import { useEffect, useState } from 'react';
+import WebApp from '@twa-dev/sdk';
+import { api, type TgStatus } from '../api';
 import type { Settings, Theme } from '../types';
 import { applyTheme } from '../theme';
-import { haptic } from '../utils';
+import { haptic, inTelegram } from '../utils';
 import { Icon } from './Icon';
+
+const REASON_TEXT: Record<NonNullable<TgStatus['reason']>, string> = {
+  not_started: 'Бот пока не может писать вам. Откройте бота и нажмите «Запустить».',
+  blocked: 'Вы заблокировали бота. Разблокируйте его в Telegram, чтобы получать сообщения.',
+  error: 'Не удалось связаться с ботом.',
+};
+
+function openBot(name: string) {
+  const url = `https://t.me/${name}`;
+  if (inTelegram()) WebApp.openTelegramLink(url);
+  else window.open(url, '_blank');
+}
 
 interface Props {
   settings: Settings;
@@ -34,6 +47,29 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
   const [busy, setBusy] = useState(false);
   const [details, setDetails] = useState(false);
   const any = FLAGS.some((f) => settings[f.key]);
+
+  // Связь с ботом: дойдут ли сообщения в чат Telegram
+  const [tg, setTg] = useState<TgStatus | null>(null);
+  const [tgBusy, setTgBusy] = useState(false);
+  const [tgNote, setTgNote] = useState('');
+  useEffect(() => {
+    api.notifyStatus().then(setTg).catch(() => setTg(null));
+  }, []);
+
+  async function sendTest() {
+    setTgBusy(true);
+    setTgNote('');
+    haptic();
+    try {
+      const r = await api.notifyTest();
+      setTg(r);
+      setTgNote(r.ok ? 'Проверочное сообщение отправлено. Загляните в чат с ботом.' : REASON_TEXT[r.reason ?? 'error']);
+    } catch (e) {
+      onError(e);
+    } finally {
+      setTgBusy(false);
+    }
+  }
 
   async function save(patch: Partial<Settings>) {
     const prev = settings;
@@ -99,6 +135,32 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
             </label>
           </>
         )}
+      </section>
+
+      <section className="dcard tg-card">
+        <div className="dlabel">Уведомления в Telegram</div>
+        {tg === null ? (
+          <div className="tg-status muted">Проверяем связь с ботом…</div>
+        ) : tg.ok ? (
+          <div className="tg-status ok">✅ Бот может писать вам. Сообщения приходят в чат с ботом.</div>
+        ) : (
+          <div className="tg-status bad">⚠️ {REASON_TEXT[tg.reason ?? 'error']}</div>
+        )}
+        {tgNote && (
+          <div className="muted tg-note" role="status">
+            {tgNote}
+          </div>
+        )}
+        <div className="tg-actions">
+          {tg && !tg.ok && tg.bot && (
+            <button className="primary small" onClick={() => openBot(tg.bot!)}>
+              Открыть бота
+            </button>
+          )}
+          <button className="secondary small" onClick={sendTest} disabled={tgBusy}>
+            {tgBusy ? 'Отправляем…' : 'Отправить тест'}
+          </button>
+        </div>
       </section>
 
       <section className="dcard">
