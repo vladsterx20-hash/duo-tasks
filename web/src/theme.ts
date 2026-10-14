@@ -1,5 +1,18 @@
 import WebApp from '@twa-dev/sdk';
-import type { Theme } from './types';
+import type { Accent, Theme } from './types';
+
+/** Акцентные цвета интерфейса. swatch — цвет кружка в настройках, сами цвета лежат в styles.css (data-accent) */
+export const ACCENTS: { key: Accent; label: string; swatch: string }[] = [
+  { key: 'orange', label: 'Оранжевый', swatch: '#f26b1d' },
+  { key: 'red', label: 'Красный', swatch: '#e5383b' },
+  { key: 'yellow', label: 'Жёлтый', swatch: '#f5b700' },
+  { key: 'green', label: 'Зелёный', swatch: '#22a559' },
+  { key: 'blue', label: 'Синий', swatch: '#2f7cf6' },
+  { key: 'purple', label: 'Фиолетовый', swatch: '#8b5cf6' },
+  { key: 'mono', label: 'Белый', swatch: '#ffffff' },
+];
+
+const ACCENT_KEYS = ACCENTS.map((a) => a.key);
 
 export function initialTheme(): Theme {
   try {
@@ -9,6 +22,22 @@ export function initialTheme(): Theme {
     /* localStorage недоступен */
   }
   return 'dark';
+}
+
+export function initialAccent(): Accent {
+  try {
+    const v = localStorage.getItem('accent') as Accent | null;
+    if (v && ACCENT_KEYS.includes(v)) return v;
+  } catch {
+    /* localStorage недоступен */
+  }
+  return 'orange';
+}
+
+/** Текущий акцентный цвет и цвет текста на нём (для кнопок Telegram) */
+export function accentColors(): { color: string; text: string } {
+  const cs = getComputedStyle(document.documentElement);
+  return { color: cs.getPropertyValue('--accent').trim() || '#f26b1d', text: cs.getPropertyValue('--accent-text').trim() || '#111111' };
 }
 
 export function applyTheme(theme: Theme) {
@@ -24,5 +53,14 @@ export function applyTheme(theme: Theme) {
     WebApp.setBackgroundColor(color);
   } catch {
     /* вне Telegram */
+  }
+}
+
+export function applyAccent(accent: Accent) {
+  document.documentElement.dataset.accent = ACCENT_KEYS.includes(accent) ? accent : 'orange';
+  try {
+    localStorage.setItem('accent', accent);
+  } catch {
+    /* ignore */
   }
 }

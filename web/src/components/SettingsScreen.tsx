@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, type TgStatus } from '../api';
 import type { Settings, Theme } from '../types';
-import { applyTheme } from '../theme';
+import { ACCENTS, applyAccent, applyTheme } from '../theme';
 import { haptic, inTelegram } from '../utils';
 import { Icon } from './Icon';
 
@@ -76,6 +76,7 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
     const prev = settings;
     onChange({ ...settings, ...patch }); // оптимистично
     if (patch.theme) applyTheme(patch.theme);
+    if (patch.accent) applyAccent(patch.accent);
     setBusy(true);
     haptic();
     try {
@@ -83,6 +84,7 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
     } catch (e) {
       onChange(prev);
       if (patch.theme) applyTheme(prev.theme);
+      if (patch.accent) applyAccent(prev.accent);
       onError(e);
     } finally {
       setBusy(false);
@@ -176,6 +178,23 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
               onClick={() => save({ theme: k })}
             >
               {label}
+            </button>
+          ))}
+        </div>
+        <div className="dlabel accent-label">Цвет интерфейса</div>
+        <div className="swatches" role="radiogroup" aria-label="Цвет интерфейса">
+          {ACCENTS.map((a) => (
+            <button
+              key={a.key}
+              role="radio"
+              aria-checked={settings.accent === a.key}
+              aria-label={a.label}
+              title={a.label}
+              className={'swatch' + (settings.accent === a.key ? ' active' : '')}
+              style={{ background: a.swatch, color: a.key === 'yellow' || a.key === 'mono' ? '#111111' : '#ffffff' }}
+              onClick={() => save({ accent: a.key })}
+            >
+              {settings.accent === a.key && <Icon name="check" size={18} strokeWidth={3.4} />}
             </button>
           ))}
         </div>

@@ -79,6 +79,10 @@ export async function initDb() {
       created_at timestamptz not null default now()
     );
     create index if not exists notifications_user_idx on notifications(user_id, id desc);
+    -- Цвет интерфейса и файлы, отправленные в чат (привязаны к сообщению, а не к задаче)
+    alter table users add column if not exists accent text not null default 'orange';
+    alter table attachments add column if not exists comment_id int references comments(id) on delete cascade;
+    create index if not exists attachments_comment_idx on attachments(comment_id);
     create table if not exists reminders_sent (
       task_id int not null references tasks(id) on delete cascade,
       user_id bigint not null references users(id),

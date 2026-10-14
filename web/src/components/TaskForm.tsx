@@ -3,6 +3,7 @@ import WebApp from '@twa-dev/sdk';
 import { api } from '../api';
 import { PRIORITY_LABEL } from '../types';
 import type { AssigneeChoice, Attachment, Priority, Task, User } from '../types';
+import { accentColors } from '../theme';
 import { cleanMoney, fmtMoney, fmtSize, haptic, inTelegram, toLocalInput, toNum } from '../utils';
 import { AddressField, type AddressValue } from './AddressField';
 import { Icon } from './Icon';
@@ -134,8 +135,9 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
     const mb = WebApp.MainButton;
     const handler = () => submitRef.current();
     mb.setText(task ? 'Сохранить' : 'Создать');
-    mb.color = '#FF5A00';
-    mb.textColor = '#111111';
+    const ac = accentColors();
+    mb.color = ac.color as `#${string}`;
+    mb.textColor = ac.text as `#${string}`;
     mb.onClick(handler);
     mb.show();
     return () => {

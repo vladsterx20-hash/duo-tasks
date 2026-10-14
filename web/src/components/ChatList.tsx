@@ -55,7 +55,7 @@ export function ChatList({ tasks, users, meId, unread, onOpen, onRefresh }: Prop
               <span className="chat-row-body">
                 <span className="chat-row-title ellipsis">{t.title}</span>
                 <span className={'chat-row-last ellipsis' + (m ? '' : ' none')}>
-                  {m ? `${who}: ${m.text}` : 'Сообщений пока нет'}
+                  {m ? `${who}: ${m.text || (m.attachments?.length ? `📎 ${m.attachments[0].file_name}` : '')}` : 'Сообщений пока нет'}
                 </span>
               </span>
               <span className="chat-row-meta">

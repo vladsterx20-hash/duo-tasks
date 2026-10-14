@@ -40,22 +40,28 @@ const PRIORITIES = ['low', 'normal', 'high'];
 const STATUSES = ['new', 'in_progress', 'done'];
 const validPriority = (v) => (PRIORITIES.includes(v) ? v : undefined);
 
+// Файлы задачи — только те, что не относятся к сообщению чата (comment_id is null)
 const SELECT = `
   select t.id, t.title, t.description, t.due_at, t.status, t.priority, t.author_id, t.assignee_id,
          t.created_at, t.completed_at, t.price, t.cost, t.profit, t.address, t.lat, t.lng, t.customer, t.taken_by,
          coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
-                   order by a.id) from attachments a where a.task_id = t.id), '[]'::json) as attachments,
+                   order by a.id) from attachments a where a.task_id = t.id and a.comment_id is null), '[]'::json) as attachments,
          coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
                    order by c.id) from comments c where c.task_id = t.id and c.kind = 'comment'), '[]'::json) as comments,
-         coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
+         coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at,
+                   'attachments', coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
+                                            order by a.id) from attachments a where a.comment_id = c.id), '[]'::json))
                    order by c.id) from comments c where c.task_id = t.id and c.kind = 'chat'), '[]'::json) as chat
   from tasks t`;
+
+const withUrl = (a) => ({ ...a, file_url: `/api/files/${a.id}?t=${fileToken(a.id)}` });
 
 async function fetchTasks(id) {
   const { rows } = await pool.query(`${SELECT} ${id ? 'where t.id=$1' : ''}`, id ? [id] : []);
   return rows.map((t) => ({
     ...t,
-    attachments: t.attachments.map((a) => ({ ...a, file_url: `/api/files/${a.id}?t=${fileToken(a.id)}` })),
+    attachments: t.attachments.map(withUrl),
+    chat: t.chat.map((m) => ({ ...m, attachments: m.attachments.map(withUrl) })),
   }));
 }
 
@@ -93,11 +99,11 @@ function parseCoord(v, max) {
   return Number.isFinite(n) && Math.abs(n) <= max ? n : NaN;
 }
 
-async function saveFiles(client, taskId, files = []) {
+async function saveFiles(client, taskId, files = [], commentId = null) {
   for (const f of files) {
     await client.query(
-      'insert into attachments (task_id, file_name, file_type, size, data) values ($1,$2,$3,$4,$5)',
-      [taskId, fixName(f.originalname), f.mimetype || 'application/octet-stream', f.size, f.buffer]
+      'insert into attachments (task_id, file_name, file_type, size, data, comment_id) values ($1,$2,$3,$4,$5,$6)',
+      [taskId, fixName(f.originalname), f.mimetype || 'application/octet-stream', f.size, f.buffer, commentId]
     );
   }
 }
@@ -135,10 +141,11 @@ async function record(userId, kind, taskId, text) {
 const REMIND_CHOICES = [5, 10, 15, 30, 60, 120, 1440];
 const SETTING_FLAGS = ['n_assigned', 'n_taken', 'n_done', 'n_comment', 'n_chat', 'n_remind'];
 const THEMES = ['dark', 'light'];
+const ACCENTS = ['orange', 'red', 'yellow', 'green', 'blue', 'purple', 'mono'];
 
 async function getSettings(userId) {
   const { rows } = await pool.query(
-    'select remind_minutes, n_assigned, n_taken, n_done, n_comment, n_chat, n_remind, theme from users where id=$1',
+    'select remind_minutes, n_assigned, n_taken, n_done, n_comment, n_chat, n_remind, theme, accent from users where id=$1',
     [userId]
   );
   return rows[0];
@@ -162,10 +169,11 @@ api.put(
     for (const f of SETTING_FLAGS) if (typeof req.body[f] === 'boolean') next[f] = req.body[f];
     if (REMIND_CHOICES.includes(Number(req.body.remind_minutes))) next.remind_minutes = Number(req.body.remind_minutes);
     if (THEMES.includes(req.body.theme)) next.theme = req.body.theme;
+    if (ACCENTS.includes(req.body.accent)) next.accent = req.body.accent;
     await pool.query(
-      `update users set remind_minutes=$2, n_assigned=$3, n_taken=$4, n_done=$5, n_comment=$6, n_remind=$7, theme=$8, n_chat=$9
+      `update users set remind_minutes=$2, n_assigned=$3, n_taken=$4, n_done=$5, n_comment=$6, n_remind=$7, theme=$8, n_chat=$9, accent=$10
        where id=$1`,
-      [req.user.id, next.remind_minutes, next.n_assigned, next.n_taken, next.n_done, next.n_comment, next.n_remind, next.theme, next.n_chat]
+      [req.user.id, next.remind_minutes, next.n_assigned, next.n_taken, next.n_done, next.n_comment, next.n_remind, next.theme, next.n_chat, next.accent]
     );
     // Если сменили порог напоминания, пусть напоминания для будущих задач сработают заново
     if (next.remind_minutes !== cur.remind_minutes)
@@ -472,6 +480,32 @@ api.post(
     const partner = partnerOf(req.user.id);
     record(partner, 'chat', id, `${req.user.first_name} · чат «${task.title}»: ${text}`);
     notifyChat(partner, req.user.first_name, task, text);
+  })
+);
+
+// Фото и файлы из чата: одно сообщение чата с вложениями (в «Файлы» задачи они не попадают)
+api.post(
+  '/tasks/:id/chat-files',
+  upload.array('files', 10),
+  wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    const [exists] = await fetchTasks(id);
+    if (!exists) return res.status(404).json({ error: 'Задача не найдена' });
+    if (!req.files?.length) return res.status(400).json({ error: 'Файл не выбран' });
+    await tx(async (c) => {
+      const { rows } = await c.query(
+        "insert into comments (task_id, author_id, text, kind) values ($1,$2,'','chat') returning id",
+        [id, req.user.id]
+      );
+      await saveFiles(c, id, req.files, rows[0].id);
+    });
+    const [task] = await fetchTasks(id);
+    res.json(task);
+    const partner = partnerOf(req.user.id);
+    const names = req.files.map((f) => fixName(f.originalname));
+    const summary = names.length > 1 ? `📎 файлов: ${names.length}` : `📎 ${names[0]}`;
+    record(partner, 'chat', id, `${req.user.first_name} · чат «${task.title}»: ${summary}`);
+    notifyChat(partner, req.user.first_name, task, summary);
   })
 );
 

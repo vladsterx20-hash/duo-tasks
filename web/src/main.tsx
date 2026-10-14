@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import WebApp from '@twa-dev/sdk';
 import 'leaflet/dist/leaflet.css';
 import App from './App';
-import { applyTheme, initialTheme } from './theme';
+import { applyAccent, applyTheme, initialAccent, initialTheme } from './theme';
 import './styles.css';
 
 WebApp.ready();
@@ -13,6 +13,7 @@ try {
 } catch {
   /* старые клиенты */
 }
+applyAccent(initialAccent());
 applyTheme(initialTheme());
 
 createRoot(document.getElementById('root')!).render(

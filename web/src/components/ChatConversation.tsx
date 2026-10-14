@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { Task, User } from '../types';
+import type { Attachment, Task, User } from '../types';
+import { fileKind, fmtSize, openFile } from '../utils';
+import { FileViewer } from './FileViewer';
 import { Icon } from './Icon';
 
 interface Props {
@@ -42,6 +44,15 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
   const [atBottom, setAtBottom] = useState(true);
   const panel = useRef<HTMLDivElement>(null);
   const stick = useRef(true); // пока читатель внизу ленты, новые сообщения прокручивают её сами
+  // Все фото и тексты из этого чата — для просмотрщика с листанием
+  const viewable = task.chat.flatMap((c) => c.attachments ?? []).filter((a) => fileKind(a) !== 'other');
+  const [viewIdx, setViewIdx] = useState<number | null>(null);
+
+  function openAttachment(a: Attachment) {
+    const i = viewable.findIndex((v) => v.id === a.id);
+    if (i >= 0) setViewIdx(i);
+    else openFile(a.file_url);
+  }
 
   // Плавно — только на небольшое расстояние; через всю длинную историю прыгаем сразу
   const scrollDown = (smooth: boolean) => {
@@ -61,6 +72,11 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
   useEffect(() => {
     if (stick.current) scrollDown(true);
   }, [task.chat.length]);
+
+  // Картинка загрузилась и подняла высоту ленты — держимся внизу, если читатель там
+  const onMediaLoad = () => {
+    if (stick.current) scrollDown(false);
+  };
 
   function onScroll() {
     const el = panel.current;
@@ -108,9 +124,8 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
     setNote('');
     setUploading(true);
     try {
+      stick.current = true; // свой файл показываем сразу
       await onUpload(files);
-      setNote('Файл прикреплён к задаче');
-      setTimeout(() => setNote(''), 2500);
     } catch {
       /* ошибка показана в App */
     } finally {
@@ -149,7 +164,22 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
                 {newDay && <div className="day-chip">{dayLabel(c.created_at)}</div>}
                 <div className={'bubble' + (mine ? ' mine' : '')}>
                   {!mine && <div className="bubble-name">{u?.first_name}</div>}
-                  <div className="bubble-text">{c.text}</div>
+                  {c.attachments?.map((a) =>
+                    a.file_type.startsWith('image/') ? (
+                      <button key={a.id} className="bubble-photo" onClick={() => openAttachment(a)} aria-label={`Фото ${a.file_name}`}>
+                        <img src={a.file_url} alt={a.file_name} onLoad={onMediaLoad} />
+                      </button>
+                    ) : (
+                      <button key={a.id} className="bubble-file" onClick={() => openAttachment(a)}>
+                        <span className="file-icon">📄</span>
+                        <span className="bubble-file-name">
+                          <b className="ellipsis">{a.file_name}</b>
+                          <span>{fmtSize(a.size)}</span>
+                        </span>
+                      </button>
+                    )
+                  )}
+                  {c.text && <div className="bubble-text">{c.text}</div>}
                   <div className="bubble-time">{timeOf(c.created_at)}</div>
                 </div>
               </Fragment>
@@ -169,8 +199,12 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
         </div>
       )}
 
+      {viewIdx !== null && viewable[viewIdx] && (
+        <FileViewer files={viewable} index={viewIdx} onIndex={setViewIdx} onClose={() => setViewIdx(null)} />
+      )}
+
       <div className="cbar inline">
-        <label className={'round-btn dark' + (uploading ? ' busy' : '')} aria-label="Прикрепить фото или файл к задаче">
+        <label className={'round-btn dark' + (uploading ? ' busy' : '')} aria-label="Отправить фото или файл в чат">
           <Icon name="clip" size={20} />
           <input
             type="file"

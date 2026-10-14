@@ -19,6 +19,7 @@ export type ActiveTab = 'new' | 'in_progress';
 export type Period = 'week' | 'month' | 'all';
 export type Priority = 'low' | 'normal' | 'high';
 export type Theme = 'dark' | 'light';
+export type Accent = 'orange' | 'red' | 'yellow' | 'green' | 'blue' | 'purple' | 'mono';
 
 export const PRIORITY_LABEL: Record<Priority, string> = { low: 'Низкий', normal: 'Обычный', high: 'Высокий' };
 export const PRIORITY_WEIGHT: Record<Priority, number> = { low: 0, normal: 1, high: 2 };
@@ -28,6 +29,8 @@ export interface Comment {
   author_id: number;
   text: string;
   created_at: string;
+  /** файлы, отправленные в чат этим сообщением */
+  attachments?: Attachment[];
 }
 
 export interface Task {
@@ -66,6 +69,7 @@ export interface Settings {
   n_chat: boolean;
   n_remind: boolean;
   theme: Theme;
+  accent: Accent;
 }
 
 export interface AppNotification {

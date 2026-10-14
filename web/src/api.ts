@@ -49,6 +49,7 @@ export const api = {
   setStatus: (id: number, status: Status, extra?: { profit?: number; price?: number; cost?: number }) =>
     req<Task>(`/tasks/${id}/status`, json('POST', { status, ...extra })),
   addFiles: (id: number, fd: FormData) => req<Task>(`/tasks/${id}/files`, { method: 'POST', body: fd }),
+  addChatFiles: (id: number, fd: FormData) => req<Task>(`/tasks/${id}/chat-files`, { method: 'POST', body: fd }),
   addComment: (id: number, text: string) => req<Task>(`/tasks/${id}/comments`, json('POST', { text })),
   addChatMessage: (id: number, text: string) => req<Task>(`/tasks/${id}/chat`, json('POST', { text })),
   deleteComment: (id: number, cid: number) => req<Task>(`/tasks/${id}/comments/${cid}`, { method: 'DELETE' }),

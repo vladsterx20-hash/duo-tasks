@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
 import type { ActiveTab, AppNotification, Period, Settings, Status, Task, User } from './types';
-import { applyTheme } from './theme';
+import { applyAccent, applyTheme } from './theme';
 import { handleBack } from './backStack';
 import { haptic, inTelegram, openRoute, periodFrom } from './utils';
 import { CompletedList } from './components/CompletedList';
@@ -167,6 +167,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
           setUsers(m.users);
           setSettings(m.settings);
           applyTheme(m.settings.theme);
+          applyAccent(m.settings.accent);
         }
         setTasks(list);
         setNotes(n);
@@ -286,6 +287,19 @@ function AppInner({ onReady }: { onReady: () => void }) {
     }
   }
 
+  // Файлы из чата становятся сообщением чата (а не вложением задачи)
+  async function sendChatFiles(t: Task, files: File[]) {
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    try {
+      upsert(await api.addChatFiles(t.id, fd));
+      haptic('success');
+    } catch (e) {
+      showError(e);
+      throw e;
+    }
+  }
+
   // Сообщение в чате задачи — отдельный поток, не комментарий в карточке
   async function sendChat(t: Task, text: string) {
     try {
@@ -398,7 +412,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         users={users}
         meId={me.id}
         onSend={(text) => sendChat(current, text)}
-        onUpload={(files) => uploadFiles(current, files)}
+        onUpload={(files) => sendChatFiles(current, files)}
         onOpenTask={() => setOverlay({ name: 'detail', taskId: current.id })}
       />
     );
