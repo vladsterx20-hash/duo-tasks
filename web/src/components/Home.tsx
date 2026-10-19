@@ -59,7 +59,7 @@ export function Home({ tasks, users, meName, onOpen, onTake, onAll, onNew, onOpe
         </button>
         <button className="tile accent" onClick={onOpenFund} aria-label="Фонд компании. Открыть">
           <span className="tile-ic">
-            <Icon name="coin" size={22} />
+            <Icon name="wallet" size={22} />
           </span>
           <span className="tile-label">
             <b>Фонд</b>
