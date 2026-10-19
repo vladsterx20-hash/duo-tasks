@@ -26,11 +26,15 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
   const layer = useRef<L.LayerGroup | null>(null);
   const fitted = useRef(false);
   const [selId, setSelId] = useState<number | null>(null);
+  const ptsRef = useRef(0);
+  const autoFit = useRef(true); // пока пользователь сам не двигал карту, держим «все задачи на экране»
+  const fitAllRef = useRef<(animate: boolean) => void>(() => {});
 
   // На карте — задачи выбранной вкладки (новые или в работе), у которых есть точка
   const onMap = (t: Task, v: ActiveTab) => t.status === v && t.lat !== null && t.lng !== null;
   const pts = useMemo(() => tasks.filter((t) => onMap(t, view)), [tasks, view]);
   const selected = pts.find((t) => t.id === selId);
+  ptsRef.current = pts.length;
   const countOn = (v: ActiveTab) => tasks.filter((t) => onMap(t, v)).length;
   // Задачи этой вкладки без точки: на карте их не показать — подскажем, почему
   const withoutPoint = tasks.filter((t) => t.status === view && (t.lat === null || t.lng === null)).length;
@@ -50,7 +54,15 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
     mapRef.current = map;
     layer.current = L.layerGroup().addTo(map);
     map.on('click', () => setSelId(null));
+    map.on('dragstart', () => (autoFit.current = false));
+    // Размер контейнера может поменяться уже после создания карты (раскладка, клавиатура, поворот): пересчитываем и подгоняем заново
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize();
+      if (autoFit.current) fitAllRef.current(false);
+    });
+    ro.observe(el.current!);
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
       layer.current = null;
@@ -64,6 +76,22 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
     fitted.current = false;
   }, [view]);
 
+  // Подгоняем масштаб так, чтобы все задачи вкладки сразу были на экране (дальше друг от друга — карта дальше)
+  const fitAll = (animate: boolean) => {
+    const map = mapRef.current;
+    if (!map || !pts.length) return;
+    map.invalidateSize();
+    // сверху — переключатель вкладок, снизу — нижнее меню и карточка задачи
+    map.fitBounds(L.latLngBounds(pts.map((t) => [t.lat!, t.lng!] as [number, number])), {
+      paddingTopLeft: [50, 90],
+      paddingBottomRight: [50, 170],
+      maxZoom: 16,
+      animate,
+    });
+    fitted.current = true;
+  };
+  fitAllRef.current = fitAll;
+
   useEffect(() => {
     const map = mapRef.current;
     const group = layer.current;
@@ -72,14 +100,33 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
     pts.forEach((t) => {
       const cls = (t.id === selId ? 'sel ' : '') + (t.status === 'in_progress' ? 'work' : '');
       L.marker([t.lat!, t.lng!], { icon: pinIcon(String(t.id), cls), keyboard: false })
-        .on('click', () => setSelId(t.id))
+        .on('click', () => selectTask(t))
         .addTo(group);
     });
-    if (!fitted.current && pts.length) {
-      map.fitBounds(L.latLngBounds(pts.map((t) => [t.lat!, t.lng!] as [number, number])), { padding: [70, 70], maxZoom: 16 });
-      fitted.current = true;
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pts, selId]);
+
+  // Набор точек изменился (открыли карту, сменили вкладку, добавили/сдвинули задачу) — показываем все. Обычное обновление данных карту не трогает.
+  const ptsKey = pts.map((t) => `${t.id}:${t.lat}:${t.lng}`).join('|');
+  useEffect(() => {
+    fitted.current = false;
+    autoFit.current = true;
+    // ждём, пока контейнер карты получит размер
+    const id = requestAnimationFrame(() => fitAll(false));
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ptsKey]);
+
+  // Нажали на метку: карта приближается к задаче (с поправкой на карточку внизу, чтобы метка не пряталась под ней)
+  function selectTask(t: Task) {
+    setSelId(t.id);
+    autoFit.current = false;
+    const map = mapRef.current;
+    if (!map) return;
+    const zoom = Math.max(map.getZoom(), 16);
+    const target = map.project(L.latLng(t.lat!, t.lng!), zoom).add([0, 60]);
+    map.flyTo(map.unproject(target, zoom), zoom, { duration: 0.6 });
+  }
 
   // Моя геопозиция: следим, пока открыта карта; уходим с экрана — слежение останавливается
   const [problem, setProblem] = useState<GeoProblem | null>(null);
@@ -106,7 +153,7 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
         setProblem(null);
         setLocated(true);
         // Если на карте нет меток задач — сразу показываем, где вы
-        if (first && !fitted.current) map.setView(ll, 15);
+        if (first && !fitted.current && ptsRef.current === 0) map.setView(ll, 15);
       },
       (p) => setProblem(p)
     );
@@ -137,10 +184,16 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
       </div>
 
       <div className="map-zoom" role="group" aria-label="Масштаб карты">
-        <button onClick={() => mapRef.current?.zoomIn()} aria-label="Приблизить карту">
+        <button onClick={() => {
+            autoFit.current = false;
+            mapRef.current?.zoomIn();
+          }} aria-label="Приблизить карту">
           <Icon name="plus" size={24} strokeWidth={2.6} />
         </button>
-        <button onClick={() => mapRef.current?.zoomOut()} aria-label="Отдалить карту">
+        <button onClick={() => {
+            autoFit.current = false;
+            mapRef.current?.zoomOut();
+          }} aria-label="Отдалить карту">
           <Icon name="minus" size={24} strokeWidth={2.6} />
         </button>
       </div>

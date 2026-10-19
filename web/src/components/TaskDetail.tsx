@@ -165,6 +165,8 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
         {uploadError && <div className="error" role="alert">{uploadError}</div>}
       </section>
 
+      {/* У завершённой задачи поля ввода (скрепка, комментарий, отправка) не показываем */}
+      {task.status !== 'done' && (
       <div className="cbar">
         <label className={'round-btn dark' + (uploading ? ' busy' : '')} aria-label="Прикрепить фото или файл">
           <Icon name="clip" size={20} />
@@ -184,6 +186,7 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
           <Icon name="send" size={18} strokeWidth={3} />
         </button>
       </div>
+      )}
 
       {viewIdx !== null && viewable[viewIdx] && (
         <FileViewer files={viewable} index={viewIdx} onIndex={setViewIdx} onClose={() => setViewIdx(null)} />
