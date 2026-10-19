@@ -171,7 +171,7 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
   }
 
   return (
-    <div className="map-screen">
+    <div className={'map-screen' + (selected ? ' has-card' : '')}>
       <div ref={el} className="map" />
 
       <div className="map-tabs seg-pill two" role="tablist" aria-label="Статус задач на карте">
@@ -237,9 +237,9 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
         </div>
       )}
 
-      {/* Пока открыта карточка задачи, «Список» сжимается до кружка с тремя точками */}
+      {/* Пока открыта карточка задачи, «Список» сжимается до кружка с тем же значком */}
       <button className={'float-btn left list-btn' + (selected ? ' compact' : '')} onClick={onList} aria-label="Список задач">
-        <Icon name={selected ? 'more' : 'list'} size={selected ? 22 : 18} strokeWidth={2.4} />
+        <Icon name="list" size={selected ? 22 : 18} strokeWidth={2.4} />
         <span className="list-btn-label">Список</span>
       </button>
       <button className="map-loc" onClick={goToMe} disabled={!located} aria-label="Где я">
