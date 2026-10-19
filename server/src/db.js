@@ -83,6 +83,15 @@ export async function initDb() {
     alter table users add column if not exists accent text not null default 'orange';
     alter table attachments add column if not exists comment_id int references comments(id) on delete cascade;
     create index if not exists attachments_comment_idx on attachments(comment_id);
+    -- Ручные операции с «Общим резервом»: пополнение и расход (с назначением)
+    create table if not exists reserve_entries (
+      id serial primary key,
+      kind text not null check (kind in ('add','withdraw')),
+      amount numeric(14,2) not null check (amount > 0),
+      note text not null default '',
+      author_id bigint not null references users(id),
+      created_at timestamptz not null default now()
+    );
     create table if not exists reminders_sent (
       task_id int not null references tasks(id) on delete cascade,
       user_id bigint not null references users(id),

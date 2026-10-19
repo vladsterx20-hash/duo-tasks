@@ -126,6 +126,26 @@ api.get('/files/:id', (q, r) => {
   r.setHeader('Content-Type', f.type || 'application/octet-stream');
   r.send(f.data);
 });
+const reserveEntries = [];
+let nextEntry = 1;
+const balanceNow = () =>
+  tasks.filter((t) => t.status === 'done' && t.profit > 0).reduce((a, t) => a + Math.round(t.profit * 0.2 * 100) / 100, 0) +
+  reserveEntries.reduce((a, e) => a + (e.kind === 'add' ? e.amount : -e.amount), 0);
+api.get('/reserve', (_q, r) => r.json(reserveEntries));
+api.post('/reserve', (q, r) => {
+  const { kind, note } = q.body;
+  const amount = Number(q.body.amount);
+  if (!amount || amount <= 0) return r.status(400).json({ error: 'Введите сумму больше нуля' });
+  if (!note) return r.status(400).json({ error: 'Укажите назначение' });
+  if (kind === 'withdraw' && amount > balanceNow()) return r.status(400).json({ error: 'В резерве недостаточно средств' });
+  reserveEntries.push({ id: nextEntry++, kind, amount, note, author_id: ME, created_at: new Date().toISOString() });
+  r.json(reserveEntries);
+});
+api.delete('/reserve/:id', (q, r) => {
+  const i = reserveEntries.findIndex((e) => e.id === Number(q.params.id));
+  if (i >= 0) reserveEntries.splice(i, 1);
+  r.json(reserveEntries);
+});
 api.get('/notifications', (_q, r) => r.json({ items: [], unread: 0 }));
 api.post('/notifications/read', (_q, r) => r.json({ ok: true }));
 api.get('/notify-status', (_q, r) => r.json({ ok: true, bot: 'demo_bot' }));

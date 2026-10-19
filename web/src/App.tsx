@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
-import type { ActiveTab, AppNotification, Period, Settings, Status, Task, User } from './types';
+import type { ActiveTab, AppNotification, Period, ReserveEntry, Settings, Status, Task, User } from './types';
 import { applyAccent, applyTheme } from './theme';
 import { handleBack } from './backStack';
-import { haptic, inTelegram, openRoute, periodFrom } from './utils';
+import { haptic, inTelegram, openRoute, periodFrom, reserveBalance } from './utils';
 import { CompletedList } from './components/CompletedList';
 import { ActionMenu, type MenuItem } from './components/ActionMenu';
 import { BottomNav, type Tab } from './components/BottomNav';
-import { AddButton, BellButton, MoreButton, TopBar } from './components/TopBar';
+import { AddButton, BellButton, MoreButton, ReservePlus, TopBar } from './components/TopBar';
 import { Home } from './components/Home';
 import { TasksScreen } from './components/TasksScreen';
 import { TaskForm } from './components/TaskForm';
@@ -20,6 +20,7 @@ import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { CompleteSheet, type CompleteValues } from './components/CompleteSheet';
 import { FundScreen, ProfitScreen, ReserveScreen } from './components/Fund';
+import { ReserveSheet } from './components/ReserveSheet';
 import { Splash } from './components/Splash';
 import { About } from './components/About';
 
@@ -81,6 +82,8 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const [period, setPeriod] = useState<Period>('month');
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [completing, setCompleting] = useState<Task | null>(null);
+  const [reserve, setReserve] = useState<ReserveEntry[]>([]);
+  const [reserveOp, setReserveOp] = useState<null | 'add' | 'withdraw'>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   // Какие сообщения в чатах уже прочитаны (последний прочитанный комментарий по задаче) — хранится на этом устройстве
@@ -164,7 +167,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const load = useCallback(
     async (first = false) => {
       try {
-        const [m, list, n] = await Promise.all([first ? api.me() : null, api.tasks(), api.notifications()]);
+        const [m, list, n, res] = await Promise.all([first ? api.me() : null, api.tasks(), api.notifications(), api.reserve()]);
         if (m) {
           setMe(m.me);
           setUsers(m.users);
@@ -174,6 +177,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         }
         setTasks(list);
         setNotes(n);
+        setReserve(res);
         setState('ready');
       } catch (e) {
         if (e instanceof ApiError && (e.status === 403 || e.status === 401)) setState('denied');
@@ -253,6 +257,23 @@ function AppInner({ onReady }: { onReady: () => void }) {
   }
 
   // Завершённые задачи за выбранный на главной период, новые сверху
+  const balance = reserveBalance(tasks, reserve);
+
+  async function reserveOperation(kind: 'add' | 'withdraw', amount: number, note: string) {
+    const list = await api.addReserve(kind, amount, note); // ошибку (например, «недостаточно средств») показывает окно
+    setReserve(list);
+    setReserveOp(null);
+    haptic('success');
+  }
+
+  async function deleteReserveEntry(id: number) {
+    try {
+      setReserve(await api.deleteReserve(id));
+    } catch (e) {
+      showError(e);
+    }
+  }
+
   const doneSince = (p: Period) => {
     const from = periodFrom(p);
     return tasks
@@ -426,11 +447,11 @@ function AppInner({ onReady }: { onReady: () => void }) {
     content = <CompletedList tasks={doneSince('all')} users={users} period="all" showProfit={false} onOpen={openTask} />;
   } else if (overlay?.name === 'fund') {
     title = 'Фонд компании';
+    right = <ReservePlus onClick={() => setReserveOp('add')} />;
     content = (
       <FundScreen
-        tasks={doneSince(period)}
-        period={period}
-        onPeriod={setPeriod}
+        doneAll={doneSince('all')}
+        balance={balance}
         onOpenProfit={() => setOverlay({ name: 'profit' })}
         onOpenReserve={() => setOverlay({ name: 'reserve' })}
       />
@@ -440,7 +461,19 @@ function AppInner({ onReady }: { onReady: () => void }) {
     content = <ProfitScreen tasks={doneSince(period)} period={period} onPeriod={setPeriod} onOpen={openTask} />;
   } else if (overlay?.name === 'reserve') {
     title = 'Общий резерв';
-    content = <ReserveScreen tasks={doneSince(period)} period={period} onPeriod={setPeriod} onOpen={openTask} />;
+    right = <ReservePlus onClick={() => setReserveOp('add')} />;
+    content = (
+      <ReserveScreen
+        doneAll={doneSince('all')}
+        entries={reserve}
+        users={users}
+        meId={me.id}
+        balance={balance}
+        onOpen={openTask}
+        onOperation={setReserveOp}
+        onDeleteEntry={deleteReserveEntry}
+      />
+    );
   } else if (overlay?.name === 'notifications') {
     title = 'Уведомления';
     content = <NotificationsScreen items={notes.items} onOpenTask={(id) => setOverlay({ name: 'detail', taskId: id })} />;
@@ -534,6 +567,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
       {showNav && <BottomNav tab={tab} onChange={setTab} chatUnread={chatUnread} />}
       {menuOpen && overlay?.name === 'detail' && current && <ActionMenu items={taskMenu(current)} onClose={() => setMenuOpen(false)} />}
       {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
+      {reserveOp && <ReserveSheet balance={balance} initial={reserveOp} onSubmit={reserveOperation} onClose={() => setReserveOp(null)} />}
       {completing && <CompleteSheet task={completing} users={users} onConfirm={confirmComplete} onClose={() => setCompleting(null)} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

@@ -1,5 +1,5 @@
 import WebApp from '@twa-dev/sdk';
-import type { AppNotification, GeoResult, Settings, Status, Task, User } from './types';
+import type { AppNotification, GeoResult, ReserveEntry, Settings, Status, Task, User } from './types';
 
 /** Связь с ботом: может ли он писать пользователю в чат Telegram */
 export interface TgStatus {
@@ -54,6 +54,10 @@ export const api = {
   addChatMessage: (id: number, text: string) => req<Task>(`/tasks/${id}/chat`, json('POST', { text })),
   deleteComment: (id: number, cid: number) => req<Task>(`/tasks/${id}/comments/${cid}`, { method: 'DELETE' }),
   remove: (id: number) => req<{ ok: true }>(`/tasks/${id}`, { method: 'DELETE' }),
+  reserve: () => req<ReserveEntry[]>('/reserve'),
+  addReserve: (kind: 'add' | 'withdraw', amount: number, note: string) =>
+    req<ReserveEntry[]>('/reserve', json('POST', { kind, amount, note })),
+  deleteReserve: (id: number) => req<ReserveEntry[]>(`/reserve/${id}`, { method: 'DELETE' }),
   notifyStatus: () => req<TgStatus>('/notify-status'),
   notifyTest: () => req<TgStatus>('/notify-test', { method: 'POST' }),
   notifications: () => req<{ items: AppNotification[]; unread: number }>('/notifications'),

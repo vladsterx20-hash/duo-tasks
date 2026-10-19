@@ -71,6 +71,15 @@ export function AddButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+/** Плюсик справа сверху в разделе «Фонд компании»: добавить или убрать деньги из общего резерва */
+export function ReservePlus({ onClick }: { onClick: () => void }) {
+  return (
+    <button className="round-btn orange" onClick={onClick} aria-label="Добавить или убрать деньги из резерва">
+      <Icon name="plus" size={22} strokeWidth={2.8} />
+    </button>
+  );
+}
+
 export function MoreButton({ onClick, expanded }: { onClick: () => void; expanded: boolean }) {
   return (
     <button className="round-btn dark" onClick={onClick} aria-label="Действия с задачей" aria-haspopup="menu" aria-expanded={expanded}>

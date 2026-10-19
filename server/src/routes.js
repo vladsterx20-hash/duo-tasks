@@ -522,6 +522,62 @@ api.delete(
   })
 );
 
+// ---------- общий резерв: ручное пополнение и расход ----------
+const RESERVE_RATE = 0.2;
+
+/** Остаток резерва: 20% прибыли выполненных задач + пополнения − расходы */
+async function reserveBalance() {
+  const { rows } = await pool.query(
+    `select
+       coalesce((select sum(round(profit * $1, 2)) from tasks where status='done' and profit > 0), 0)
+       + coalesce((select sum(amount) from reserve_entries where kind='add'), 0)
+       - coalesce((select sum(amount) from reserve_entries where kind='withdraw'), 0) as balance`,
+    [RESERVE_RATE]
+  );
+  return Number(rows[0].balance);
+}
+
+api.get(
+  '/reserve',
+  wrap(async (_req, res) => {
+    const { rows } = await pool.query('select id, kind, amount, note, author_id, created_at from reserve_entries order by id');
+    res.json(rows);
+  })
+);
+
+api.post(
+  '/reserve',
+  wrap(async (req, res) => {
+    const kind = req.body.kind;
+    if (kind !== 'add' && kind !== 'withdraw') return res.status(400).json({ error: 'Неверная операция' });
+    const amount = parseMoney(req.body.amount);
+    if (!amount) return res.status(400).json({ error: 'Введите сумму больше нуля' });
+    const note = String(req.body.note || '').trim().slice(0, 300);
+    if (!note) return res.status(400).json({ error: kind === 'withdraw' ? 'Укажите, на что потрачены средства' : 'Укажите назначение' });
+    if (kind === 'withdraw' && amount > (await reserveBalance()) + 0.001)
+      return res.status(400).json({ error: 'В резерве недостаточно средств' });
+    await pool.query('insert into reserve_entries (kind, amount, note, author_id) values ($1,$2,$3,$4)', [
+      kind,
+      amount,
+      note,
+      req.user.id,
+    ]);
+    const { rows } = await pool.query('select id, kind, amount, note, author_id, created_at from reserve_entries order by id');
+    res.json(rows);
+    const verb = kind === 'add' ? 'пополнил(а)' : 'потратил(а) из';
+    record(partnerOf(req.user.id), 'chat', null, `${req.user.first_name} ${verb} общий резерв: ${amount} ₽ · ${note}`);
+  })
+);
+
+api.delete(
+  '/reserve/:id',
+  wrap(async (req, res) => {
+    await pool.query('delete from reserve_entries where id=$1 and author_id=$2', [Number(req.params.id), req.user.id]);
+    const { rows } = await pool.query('select id, kind, amount, note, author_id, created_at from reserve_entries order by id');
+    res.json(rows);
+  })
+);
+
 api.delete(
   '/tasks/:id',
   wrap(async (req, res) => {

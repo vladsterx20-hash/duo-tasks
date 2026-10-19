@@ -88,3 +88,13 @@ export interface GeoResult {
 }
 
 export type AssigneeChoice = 'me' | 'partner' | 'both';
+
+/** Ручная операция с общим резервом */
+export interface ReserveEntry {
+  id: number;
+  kind: 'add' | 'withdraw';
+  amount: number;
+  note: string;
+  author_id: number;
+  created_at: string;
+}

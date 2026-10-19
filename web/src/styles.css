@@ -906,3 +906,14 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 /* Стрелки на карточках фонда: одного размера и строго друг под другом */
 .reserve-card .card-chev, .reserve-card.big .card-chev { width: 38px; height: 38px; right: 18px; }
 .reserve-card { padding-right: 70px; }
+
+/* Общий резерв: кнопки операций, калькулятор в окне, записи вручную */
+.reserve-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.reserve-actions .small { min-height: 48px; font-size: 14px; }
+.reserve-actions .secondary { background: var(--card-2); border: 1px solid var(--line); }
+.reserve-calc { display: flex; flex-direction: column; gap: 2px; margin: 12px 4px 4px; font-size: 13px; color: var(--hint); }
+.reserve-calc b { font-size: 18px; color: var(--text); }
+.reserve-calc b.neg { color: var(--danger); }
+.entry-sign { background: transparent; }
+.entry-sign.on { background: var(--accent); color: var(--accent-text); }
+.entry-del { align-self: flex-start; margin-top: 2px; font-size: 11px; text-decoration: underline; color: var(--hint); }

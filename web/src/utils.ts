@@ -102,3 +102,13 @@ export const openRoute = (lat: number, lng: number) =>
 export const RESERVE_RATE = 0.2;
 export const reserveOf = (t: { profit: number | null }): number =>
   t.profit && t.profit > 0 ? Math.round(t.profit * RESERVE_RATE * 100) / 100 : 0;
+
+/** Остаток резерва: 20% прибыли выполненных задач + пополнения − расходы */
+export function reserveBalance(
+  tasks: { status: string; profit: number | null }[],
+  entries: { kind: 'add' | 'withdraw'; amount: number }[]
+): number {
+  const auto = tasks.filter((t) => t.status === 'done').reduce((s, t) => s + reserveOf(t), 0);
+  const manual = entries.reduce((s, e) => s + (e.kind === 'add' ? e.amount : -e.amount), 0);
+  return Math.round((auto + manual) * 100) / 100;
+}
