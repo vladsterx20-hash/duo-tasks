@@ -1,5 +1,5 @@
 import type { Task, User } from '../types';
-import { assigneesOf, fmtDue, isOverdue } from '../utils';
+import { assigneesOf, fmtDue, isOverdue, statusLabel } from '../utils';
 import { AvatarStack } from './Avatar';
 import { Icon } from './Icon';
 
@@ -23,6 +23,7 @@ export function TaskCard({ task, users, onOpen, onTake, compact }: Props) {
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
     >
+      <span className={'status-dot ' + task.status} title={statusLabel[task.status]} aria-label={statusLabel[task.status]} />
       <div className="card-main">
         <span className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '')} aria-label={`Задача номер ${task.id}`}>
           {task.id}
