@@ -4,11 +4,14 @@
     {
       "name": "start",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "start"
-      ],
+      "runtimeArgs": ["run", "start"],
       "port": 3000
+    },
+    {
+      "name": "local-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/dev-stub.mjs"],
+      "port": 3100
     }
   ]
 }
