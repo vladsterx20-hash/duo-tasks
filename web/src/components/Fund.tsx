@@ -36,29 +36,27 @@ export function FundScreen({ tasks, period, onPeriod, onOpenProfit, onOpenReserv
   return (
     <>
       <PeriodPills period={period} onPeriod={onPeriod} />
-      <button className="reserve-card" onClick={onOpenProfit} aria-label={`Прибыль с заказов: ${fmtMoney(profit)}. Открыть подробности`}>
+      <button className="reserve-card big" onClick={onOpenReserve} aria-label={`Общий резерв: ${fmtMoney(reserve)}. Открыть подробности`}>
         <span className="card-chev dark">
           <Icon name="chevron" size={18} strokeWidth={2.6} />
         </span>
         <div className="reserve-head">
-          <Icon name="coin" size={20} />
-          <span className="reserve-label">Прибыль с заказов</span>
-        </div>
-        <div className="reserve-sum">{fmtMoney(profit)}</div>
-        <div className="reserve-sub">Завершённых задач {periodLabel[period]}: {tasks.length}</div>
-      </button>
-      <button className="reserve-card" onClick={onOpenReserve} aria-label={`Общий резерв: ${fmtMoney(reserve)}. Открыть подробности`}>
-        <span className="card-chev dark">
-          <Icon name="chevron" size={18} strokeWidth={2.6} />
-        </span>
-        <div className="reserve-head">
-          <Icon name="coin" size={20} />
           <span className="reserve-label">Общий резерв</span>
         </div>
         <div className="reserve-sum">{fmtMoney(reserve)}</div>
         <div className="reserve-sub">
           {Math.round(RESERVE_RATE * 100)}% с прибыли каждого выполненного заказа {periodLabel[period]}
         </div>
+      </button>
+      <button className="reserve-card" onClick={onOpenProfit} aria-label={`Прибыль с заказов: ${fmtMoney(profit)}. Открыть подробности`}>
+        <span className="card-chev dark">
+          <Icon name="chevron" size={18} strokeWidth={2.6} />
+        </span>
+        <div className="reserve-head">
+          <span className="reserve-label">Прибыль с заказов</span>
+        </div>
+        <div className="reserve-sum">{fmtMoney(profit)}</div>
+        <div className="reserve-sub">Завершённых задач {periodLabel[period]}: {tasks.length}</div>
       </button>
     </>
   );
@@ -79,7 +77,6 @@ export function ProfitScreen({ tasks, period, onPeriod, onOpen }: ProfitProps) {
       <PeriodPills period={period} onPeriod={onPeriod} />
       <div className="reserve-card static">
         <div className="reserve-head">
-          <Icon name="coin" size={20} />
           <span className="reserve-label">Прибыль с заказов</span>
         </div>
         <div className="reserve-sum">{fmtMoney(total)}</div>
@@ -127,7 +124,6 @@ export function ReserveScreen({ tasks, period, onPeriod, onOpen }: ReserveProps)
       <PeriodPills period={period} onPeriod={onPeriod} />
       <div className="reserve-card static">
         <div className="reserve-head">
-          <Icon name="coin" size={20} />
           <span className="reserve-label">Общий резерв {periodLabel[period]}</span>
         </div>
         <div className="reserve-sum">{fmtMoney(total)}</div>

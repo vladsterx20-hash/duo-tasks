@@ -884,3 +884,16 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .tile { padding: 0 10px 0 10px; gap: 8px; }
 .tile-ic { width: 32px; height: 32px; }
 .tile.dark .tile-label b { white-space: nowrap; }
+
+/* Карточки фонда окрашены в цвет выбранной темы (акцента) */
+.reserve-card { background: var(--accent); color: var(--accent-text); }
+.reserve-sub { color: inherit; opacity: 0.8; }
+.reserve-card .card-chev { background: rgba(17, 17, 17, 0.14); color: inherit; }
+:root[data-theme='light'] .reserve-card { border: 0; }
+
+/* «Общий резерв» на экране фонда — главная, крупная карточка */
+.reserve-card.big { padding: 28px 60px 28px 24px; border-radius: 30px; margin-bottom: 16px; }
+.reserve-card.big .reserve-label { font-size: 13px; }
+.reserve-card.big .reserve-sum { font-size: 44px; margin: 12px 0 8px; }
+.reserve-card.big .reserve-sub { font-size: 13.5px; }
+.reserve-card.big .card-chev { width: 38px; height: 38px; right: 18px; }
