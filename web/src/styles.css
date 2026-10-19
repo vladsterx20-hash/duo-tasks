@@ -952,3 +952,6 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .status-dot.new { box-shadow: 0 0 5px 1px rgba(46, 204, 113, 0.75); }
 .status-dot.in_progress { box-shadow: 0 0 5px 1px rgba(255, 200, 0, 0.75); }
 .status-dot.done { box-shadow: 0 0 5px 1px rgba(255, 59, 48, 0.75); }
+
+/* Номер задачи: всегда серая подложка, не зависит от темы и акцентного цвета */
+.num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on { background: #cfcfcf; color: #111111; }
