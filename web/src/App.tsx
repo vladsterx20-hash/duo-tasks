@@ -4,7 +4,7 @@ import { api, ApiError } from './api';
 import type { ActiveTab, AppNotification, Period, ReserveEntry, Settings, Status, Task, User } from './types';
 import { applyAccent, applyTheme } from './theme';
 import { handleBack } from './backStack';
-import { haptic, inTelegram, openRoute, periodFrom, reserveBalance } from './utils';
+import { DISPLAY_NAMES, haptic, inTelegram, openRoute, periodFrom, reserveBalance } from './utils';
 import { CompletedList } from './components/CompletedList';
 import { ActionMenu, type MenuItem } from './components/ActionMenu';
 import { BottomNav, type Tab } from './components/BottomNav';
@@ -538,7 +538,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         <Home
           tasks={tasks}
           users={users}
-          meName={me.first_name}
+          meName={DISPLAY_NAMES[me.id] ?? me.first_name}
           onOpen={openTask}
           onTake={take}
           onAll={() => setTab('tasks')}

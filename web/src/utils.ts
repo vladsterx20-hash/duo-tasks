@@ -112,3 +112,9 @@ export function reserveBalance(
   const manual = entries.reduce((s, e) => s + (e.kind === 'add' ? e.amount : -e.amount), 0);
   return Math.round((auto + manual) * 100) / 100;
 }
+
+/** Как обращаться к каждому пользователю в приветствии на главной (по Telegram ID); иначе — имя из Telegram */
+export const DISPLAY_NAMES: Record<number, string> = {
+  906246768: 'Владислав',
+  7976859734: 'Александр',
+};

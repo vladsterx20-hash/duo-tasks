@@ -1023,3 +1023,10 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .map-screen .map-loc,
 .map-screen.has-card .float-btn.left,
 .map-screen.has-card .map-loc { bottom: calc(var(--nav-h) + 8px + 78px + 14px + env(safe-area-inset-bottom)); }
+
+/* Карта: «Список» и «Где я» — как в самом начале, внизу над панелью; карточка задачи — над ними */
+.map-screen .float-btn.left,
+.map-screen .map-loc,
+.map-screen.has-card .float-btn.left,
+.map-screen.has-card .map-loc { bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
+.map-card { bottom: calc(var(--nav-h) + 86px + env(safe-area-inset-bottom)); }
