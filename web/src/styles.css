@@ -878,3 +878,9 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .tile-ic svg { width: 19px; height: 19px; }
 .tile-label { min-width: 0; }
 .tile-label b, .tile-label small { white-space: nowrap; }
+
+/* «Новая задача» в одну строку; две другие плитки чуть уже */
+.home-tiles { gap: 8px; }
+.tile { padding: 0 10px 0 10px; gap: 8px; }
+.tile-ic { width: 32px; height: 32px; }
+.tile.dark .tile-label b { white-space: nowrap; }
