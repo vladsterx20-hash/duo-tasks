@@ -89,7 +89,7 @@ export function Home({ tasks, users, meName, onOpen, onTake, onAll, onNew, onOpe
         </div>
       ) : (
         upcoming.map((t) => (
-          <TaskCard key={t.id} task={t} users={users} compact onOpen={() => onOpen(t)} onTake={() => onTake(t)} />
+          <TaskCard key={t.id} task={t} users={users} compact statusDot onOpen={() => onOpen(t)} onTake={() => onTake(t)} />
         ))
       )}
     </PullToRefresh>

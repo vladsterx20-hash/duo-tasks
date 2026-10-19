@@ -10,9 +10,11 @@ interface Props {
   onTake: () => void;
   /** компактный вариант для главной (без кнопок действий) */
   compact?: boolean;
+  /** огонёк статуса в углу карточки — только на главной */
+  statusDot?: boolean;
 }
 
-export function TaskCard({ task, users, onOpen, onTake, compact }: Props) {
+export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Props) {
   const done = task.status === 'done';
 
   return (
@@ -23,7 +25,7 @@ export function TaskCard({ task, users, onOpen, onTake, compact }: Props) {
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
     >
-      <span className={'status-dot ' + task.status} title={statusLabel[task.status]} aria-label={statusLabel[task.status]} />
+      {statusDot && <span className={'status-dot ' + task.status} title={statusLabel[task.status]} aria-label={statusLabel[task.status]} />}
       <div className="card-main">
         <span className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '')} aria-label={`Задача номер ${task.id}`}>
           {task.id}
