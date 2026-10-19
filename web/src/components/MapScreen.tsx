@@ -237,8 +237,10 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
         </div>
       )}
 
-      <button className="float-btn left" onClick={onList}>
-        <Icon name="list" size={18} strokeWidth={2.4} /> Список
+      {/* Пока открыта карточка задачи, «Список» сжимается до кружка с тремя точками */}
+      <button className={'float-btn left list-btn' + (selected ? ' compact' : '')} onClick={onList} aria-label="Список задач">
+        <Icon name={selected ? 'more' : 'list'} size={selected ? 22 : 18} strokeWidth={2.4} />
+        <span className="list-btn-label">Список</span>
       </button>
       <button className="map-loc" onClick={goToMe} disabled={!located} aria-label="Где я">
         <Icon name="locate" size={24} strokeWidth={2.4} />
