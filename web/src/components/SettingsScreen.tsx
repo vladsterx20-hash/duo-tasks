@@ -191,7 +191,7 @@ export function SettingsScreen({ settings, onChange, onError }: Props) {
               aria-label={a.label}
               title={a.label}
               className={'swatch' + (settings.accent === a.key ? ' active' : '')}
-              style={{ background: a.swatch, color: a.key === 'yellow' || a.key === 'mono' ? '#111111' : '#ffffff' }}
+              style={{ background: a.swatch, color: '#111111' }}
               onClick={() => save({ accent: a.key })}
             >
               {settings.accent === a.key && <Icon name="check" size={18} strokeWidth={3.4} />}

@@ -753,11 +753,11 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 :root[data-theme='light'] { --accent-ink: var(--accent-ink-l, var(--accent)); }
 
 :root[data-accent='orange'] { --accent: #f26b1d; --accent-text: #111111; --accent-ink-l: #d4570f; }
-:root[data-accent='red'] { --accent: #e5383b; --accent-text: #ffffff; --accent-ink-l: #c62828; }
+:root[data-accent='red'] { --accent: #f0494c; --accent-text: #111111; --accent-ink-l: #c62828; }
 :root[data-accent='yellow'] { --accent: #f5b700; --accent-text: #111111; --accent-ink-l: #946900; }
-:root[data-accent='green'] { --accent: #2fb768; --accent-text: #0b1f12; --accent-ink-l: #1a7f45; }
-:root[data-accent='blue'] { --accent: #2f7cf6; --accent-text: #ffffff; --accent-ink-l: #1d5fd0; }
-:root[data-accent='purple'] { --accent: #8b5cf6; --accent-text: #ffffff; --accent-ink-l: #6d3fd6; }
+:root[data-accent='green'] { --accent: #2fb768; --accent-text: #111111; --accent-ink-l: #1a7f45; }
+:root[data-accent='blue'] { --accent: #4d94ff; --accent-text: #111111; --accent-ink-l: #1d5fd0; }
+:root[data-accent='purple'] { --accent: #a98bff; --accent-text: #111111; --accent-ink-l: #6d3fd6; }
 :root[data-accent='mono'] { --accent: #ffffff; --accent-text: #111111; --accent-ink-l: #111111; }
 :root[data-accent='mono'][data-theme='light'] { --accent: #111111; --accent-text: #ffffff; }
 
@@ -929,3 +929,7 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .reserve-edit { position: absolute; top: 14px; right: 14px; min-height: 34px; padding: 0 14px; border-radius: 999px; background: rgba(17, 17, 17, 0.9); color: #ffffff; font-size: 12px; font-weight: 800; white-space: nowrap; }
 .reserve-card.static.big { padding-right: 24px; }
 .reserve-card.static.big .reserve-head { padding-right: 140px; min-height: 34px; align-items: center; }
+
+/* Поле комментария/сообщения: несколько строк, Enter — перенос строки */
+.cbar { align-items: flex-end; }
+.grow-input { resize: none; min-height: 46px; max-height: 120px; padding-top: 12px; padding-bottom: 12px; line-height: 1.35; border-radius: 23px; overflow-y: auto; display: block; flex: 1; min-width: 0; }

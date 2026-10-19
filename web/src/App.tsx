@@ -224,6 +224,50 @@ function AppInner({ onReady }: { onReady: () => void }) {
     else WebApp.BackButton.hide();
   }, [overlay]);
 
+  // Свайп влево-вправо переключает разделы: Главная → Задачи → Чат → Настройки
+  const swipeBlocked = !!overlay || aboutOpen || !!reserveOp || !!completing || menuOpen || tab === 'map';
+  useEffect(() => {
+    if (swipeBlocked) return;
+    const ORDER: Tab[] = ['home', 'tasks', 'chat', 'settings'];
+    let start: { x: number; y: number; t: number } | null = null;
+    // Не перехватываем жесты внутри полей ввода и областей, которые сами прокручиваются вбок
+    const ignored = (el: EventTarget | null) => {
+      let n = el as HTMLElement | null;
+      while (n && n !== document.body) {
+        if (n.matches?.('input, textarea, select, .leaflet-container, .modal, .sheet, .viewer')) return true;
+        if (n.scrollWidth > n.clientWidth + 2 && /(auto|scroll)/.test(getComputedStyle(n).overflowX)) return true;
+        n = n.parentElement;
+      }
+      return false;
+    };
+    const onStart = (e: TouchEvent) => {
+      const p = e.touches[0];
+      start = e.touches.length === 1 && !ignored(e.target) ? { x: p.clientX, y: p.clientY, t: Date.now() } : null;
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (!start) return;
+      const p = e.changedTouches[0];
+      const dx = p.clientX - start.x;
+      const dy = p.clientY - start.y;
+      const fast = Date.now() - start.t < 700;
+      start = null;
+      if (!fast || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+      const i = ORDER.indexOf(tab);
+      const next = ORDER[i + (dx < 0 ? 1 : -1)];
+      if (next) {
+        haptic();
+        setTab(next);
+        window.scrollTo(0, 0);
+      }
+    };
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchend', onEnd);
+    };
+  }, [swipeBlocked, tab]);
+
   async function changeStatus(t: Task, status: Status, extra?: { profit?: number; price?: number; cost?: number }) {
     const before = t;
     // оптимистично

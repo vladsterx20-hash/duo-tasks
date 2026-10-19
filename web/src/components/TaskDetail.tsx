@@ -4,6 +4,7 @@ import type { Task, User } from '../types';
 import { assigneesOf, fileKind, fmtDue, fmtMoney, fmtSize, isOverdue, openFile, statusLabel } from '../utils';
 import { FileViewer } from './FileViewer';
 import { AvatarStack } from './Avatar';
+import { GrowInput } from './GrowInput';
 import { Icon, type IconName } from './Icon';
 
 interface Props {
@@ -178,14 +179,7 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
             }}
           />
         </label>
-        <input
-          className="field pill"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
-          maxLength={2000}
-          placeholder="Комментарий…"
-        />
+        <GrowInput value={text} onChange={setText} maxLength={2000} placeholder="Комментарий…" />
         <button className="round-btn orange" onClick={send} disabled={!text.trim() || sending} aria-label="Отправить">
           <Icon name="send" size={18} strokeWidth={3} />
         </button>

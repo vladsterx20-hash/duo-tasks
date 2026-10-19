@@ -4,11 +4,11 @@ import type { Accent, Theme } from './types';
 /** Акцентные цвета интерфейса. swatch — цвет кружка в настройках, сами цвета лежат в styles.css (data-accent) */
 export const ACCENTS: { key: Accent; label: string; swatch: string }[] = [
   { key: 'orange', label: 'Оранжевый', swatch: '#f26b1d' },
-  { key: 'red', label: 'Красный', swatch: '#e5383b' },
+  { key: 'red', label: 'Красный', swatch: '#f0494c' },
   { key: 'yellow', label: 'Жёлтый', swatch: '#f5b700' },
-  { key: 'green', label: 'Зелёный', swatch: '#22a559' },
-  { key: 'blue', label: 'Синий', swatch: '#2f7cf6' },
-  { key: 'purple', label: 'Фиолетовый', swatch: '#8b5cf6' },
+  { key: 'green', label: 'Зелёный', swatch: '#2fb768' },
+  { key: 'blue', label: 'Синий', swatch: '#4d94ff' },
+  { key: 'purple', label: 'Фиолетовый', swatch: '#a98bff' },
   { key: 'mono', label: 'Белый', swatch: '#ffffff' },
 ];
 

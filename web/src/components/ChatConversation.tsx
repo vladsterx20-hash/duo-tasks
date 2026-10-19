@@ -2,6 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Attachment, Task, User } from '../types';
 import { fileKind, fmtSize, openFile } from '../utils';
 import { FileViewer } from './FileViewer';
+import { GrowInput } from './GrowInput';
 import { Icon } from './Icon';
 
 interface Props {
@@ -217,14 +218,7 @@ export function ChatConversation({ task, users, meId, onSend, onUpload, onOpenTa
             }}
           />
         </label>
-        <input
-          className="field pill"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
-          placeholder="Сообщение…"
-          maxLength={2000}
-        />
+        <GrowInput value={text} onChange={setText} maxLength={2000} placeholder="Сообщение…" />
         <button className="round-btn orange" aria-label="Отправить" onClick={send} disabled={!text.trim() || sending}>
           <Icon name="send" size={18} strokeWidth={3} />
         </button>
