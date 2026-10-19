@@ -990,3 +990,8 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .screen.slide-from-right { animation: slideFromRight 0.2s var(--ease) both; }
 .screen.slide-from-left { animation: slideFromLeft 0.2s var(--ease) both; }
 @media (prefers-reduced-motion: reduce) { .screen.slide-from-right, .screen.slide-from-left { animation: none; } }
+
+/* Номер задачи без канта и с адаптацией под тему: на тёмной — белый, на светлой — тёмный */
+.num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on { background: #ffffff; color: #111111; box-shadow: none; }
+:root[data-theme='light'] .num, :root[data-theme='light'] .num.on, :root[data-theme='light'] .num.work,
+:root[data-theme='light'] .num.entry-sign, :root[data-theme='light'] .num.entry-sign.on { background: #1c1c1c; color: #ffffff; box-shadow: none; }
