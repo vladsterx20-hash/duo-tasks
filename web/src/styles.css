@@ -818,3 +818,23 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .home-btn { aspect-ratio: auto; min-height: 0; padding: 16px 48px 16px 16px; border-radius: 22px; align-items: center; }
 .home-btn-label { font-size: 12px; line-height: 1.25; }
 .home-btn-chev { top: 50%; right: 10px; transform: translateY(-50%); width: 28px; height: 28px; }
+
+/* =====================================================================
+   Главная v2: приветствие, сводка, быстрое добавление
+   ===================================================================== */
+.hello { margin: 2px 4px 14px; }
+.hello-name { font-size: 22px; font-weight: 800; line-height: 1.2; }
+.hello-date { margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--hint); }
+.hello-date::first-letter { text-transform: uppercase; }
+
+.hero { border-radius: 28px; padding: 20px 18px 16px; margin-bottom: 12px; background: var(--accent); color: var(--accent-text); animation: rise 0.4s var(--ease) both; }
+.hero-label { font-size: 11.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; opacity: 0.8; }
+.hero-big { font-size: 26px; font-weight: 800; line-height: 1.15; margin: 6px 0 4px; letter-spacing: -0.01em; }
+.hero-sub { font-size: 13px; font-weight: 700; opacity: 0.85; }
+.hero-counters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+.hero-count { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 16px; background: rgba(17, 17, 17, 0.14); color: inherit; text-align: left; }
+.hero-count b { font-size: 24px; font-weight: 800; line-height: 1.1; }
+.hero-count span { font-size: 11px; font-weight: 700; opacity: 0.85; }
+.hero-count.alert { background: #111111; color: #ffffff; }
+
+.quick-add { width: 100%; min-height: 52px; margin-bottom: 12px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 800; border: 1.5px dashed var(--accent); color: var(--accent-ink); }

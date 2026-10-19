@@ -448,9 +448,15 @@ function AppInner({ onReady }: { onReady: () => void }) {
         <Home
           tasks={tasks}
           users={users}
+          meName={me.first_name}
           onOpen={openTask}
           onTake={take}
           onAll={() => setTab('tasks')}
+          onTasks={(tb) => {
+            setTaskTab(tb);
+            setTab('tasks');
+          }}
+          onNew={() => setOverlay({ name: 'form' })}
           onOpenDone={() => setOverlay({ name: 'done' })}
           onOpenFund={() => setOverlay({ name: 'fund' })}
           onRefresh={refresh}
