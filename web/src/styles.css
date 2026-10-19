@@ -955,3 +955,6 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 
 /* Номер задачи: всегда серая подложка, не зависит от темы и акцентного цвета */
 .num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on { background: #cfcfcf; color: #111111; }
+
+/* «Новая задача» в светлой теме — белая плитка с контуром и тенью, как «Сделанные» */
+:root[data-theme='light'] .tile.dark { background: #ffffff; color: #111111; border: 1px solid rgba(17, 17, 17, 0.08); box-shadow: var(--shadow); }
