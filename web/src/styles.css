@@ -1062,3 +1062,9 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .map-card .route-btn .route-label,
 .map-screen.has-card .map-card .route-btn .route-label { display: block; }
 .map-screen.has-card .map-card .pin-num { display: none; }
+
+/* «Маршрут»: узкая вертикальная плашка, текст по вертикали */
+.map-card .route-btn,
+.map-screen.has-card .map-card .route-btn { width: 40px; padding: 10px 0; gap: 6px; border-radius: 16px; }
+.map-card .route-btn .route-label,
+.map-screen.has-card .map-card .route-btn .route-label { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; letter-spacing: 0.04em; white-space: nowrap; }
