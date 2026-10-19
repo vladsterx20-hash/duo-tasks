@@ -20,7 +20,9 @@ function fmtShort(iso: string): string {
 }
 
 /** Список задач как список чатов: номер, название, последнее сообщение, непрочитанные */
-export function ChatList({ tasks, users, meId, unread, onOpen, onRefresh }: Props) {
+export function ChatList({ tasks: allTasks, users, meId, unread, onOpen, onRefresh }: Props) {
+  // Чат завершённой задачи из списка убираем
+  const tasks = useMemo(() => allTasks.filter((t) => t.status !== 'done'), [allTasks]);
   const rows = useMemo(() => {
     const last = (t: Task) => t.chat[t.chat.length - 1];
     // Сверху — задачи с самым свежим сообщением; без сообщений — по номеру (новые выше)

@@ -446,7 +446,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
 
   const partner = users.find((u) => u.id !== me.id);
   const unreadOf = (t: Task) => t.chat.filter((c) => c.author_id !== me.id && c.id > (seen[t.id] ?? 0)).length;
-  const chatUnread = tasks.reduce((s, t) => s + unreadOf(t), 0);
+  const chatUnread = tasks.reduce((s, t) => s + (t.status === 'done' ? 0 : unreadOf(t)), 0);
   const current = overlay && 'taskId' in overlay && overlay.taskId ? tasks.find((t) => t.id === overlay.taskId) : undefined;
   const refresh = () => load();
 
