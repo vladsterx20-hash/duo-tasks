@@ -48,7 +48,7 @@ export function FundScreen({ tasks, period, onPeriod, onOpenProfit, onOpenReserv
           {Math.round(RESERVE_RATE * 100)}% с прибыли каждого выполненного заказа {periodLabel[period]}
         </div>
       </button>
-      <button className="reserve-card" onClick={onOpenProfit} aria-label={`Прибыль с заказов: ${fmtMoney(profit)}. Открыть подробности`}>
+      <button className="reserve-card dark" onClick={onOpenProfit} aria-label={`Прибыль с заказов: ${fmtMoney(profit)}. Открыть подробности`}>
         <span className="card-chev dark">
           <Icon name="chevron" size={18} strokeWidth={2.6} />
         </span>
@@ -75,7 +75,7 @@ export function ProfitScreen({ tasks, period, onPeriod, onOpen }: ProfitProps) {
   return (
     <div className="done-list">
       <PeriodPills period={period} onPeriod={onPeriod} />
-      <div className="reserve-card static">
+      <div className="reserve-card static dark">
         <div className="reserve-head">
           <span className="reserve-label">Прибыль с заказов</span>
         </div>
