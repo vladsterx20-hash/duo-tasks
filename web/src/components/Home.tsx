@@ -52,19 +52,28 @@ export function Home({ tasks, users, meName, onOpen, onTake, onAll, onNew, onOpe
           <span className="tile-ic">
             <Icon name="check" size={22} strokeWidth={2.8} />
           </span>
-          <span className="tile-label">Сделанные задачи</span>
+          <span className="tile-label">
+            <b>Сделанные</b>
+            <small>задачи</small>
+          </span>
         </button>
         <button className="tile accent" onClick={onOpenFund} aria-label="Фонд компании. Открыть">
           <span className="tile-ic">
             <Icon name="coin" size={22} />
           </span>
-          <span className="tile-label">Фонд компании</span>
+          <span className="tile-label">
+            <b>Фонд</b>
+            <small>компании</small>
+          </span>
         </button>
         <button className="tile dark" onClick={onNew} aria-label="Новая задача">
           <span className="tile-ic">
             <Icon name="plus" size={24} strokeWidth={2.8} />
           </span>
-          <span className="tile-label">Новая задача</span>
+          <span className="tile-label">
+            <b>Новая</b>
+            <small>задача</small>
+          </span>
         </button>
       </div>
 
