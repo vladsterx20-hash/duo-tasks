@@ -995,3 +995,8 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on { background: #ffffff; color: #111111; box-shadow: none; }
 :root[data-theme='light'] .num, :root[data-theme='light'] .num.on, :root[data-theme='light'] .num.work,
 :root[data-theme='light'] .num.entry-sign, :root[data-theme='light'] .num.entry-sign.on { background: #1c1c1c; color: #ffffff; box-shadow: none; }
+
+/* Номер задачи окрашивается в цвет выбранной темы — так же, как «Фонд компании» */
+.num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on,
+:root[data-theme='light'] .num, :root[data-theme='light'] .num.on, :root[data-theme='light'] .num.work,
+:root[data-theme='light'] .num.entry-sign, :root[data-theme='light'] .num.entry-sign.on { background: var(--accent); color: var(--accent-text); box-shadow: none; }
