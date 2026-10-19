@@ -838,3 +838,15 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .hero-count.alert { background: #111111; color: #ffffff; }
 
 .quick-add { width: 100%; min-height: 52px; margin-bottom: 12px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 800; border: 1.5px dashed var(--accent); color: var(--accent-ink); }
+
+/* Главная v3: три квадратные плитки в ряд — «Сделанные», «Фонд», «Новая задача» */
+.home-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+.tile { aspect-ratio: 1 / 1; border-radius: 24px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; text-align: left; animation: rise 0.4s var(--ease) both; }
+.tile-ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(17, 17, 17, 0.12); }
+.tile-label { font-size: 11.5px; font-weight: 800; line-height: 1.25; letter-spacing: 0.04em; text-transform: uppercase; }
+.tile.light { background: #ffffff; color: #111111; }
+.tile.light .tile-ic { background: #efefef; }
+.tile.accent { background: var(--accent); color: var(--accent-text); }
+.tile.dark { background: var(--card-2); color: var(--text); border: 1.5px dashed var(--accent); }
+.tile.dark .tile-ic { background: var(--accent); color: var(--accent-text); }
+:root[data-theme='light'] .tile.light { border: 1px solid rgba(17, 17, 17, 0.08); box-shadow: var(--shadow); }
