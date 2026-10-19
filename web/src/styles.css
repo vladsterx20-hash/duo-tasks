@@ -1046,3 +1046,12 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
   .map-screen.has-card .map-card .route-btn { width: 40px; min-height: 40px; padding: 0; border-radius: 50%; }
   .map-screen.has-card .map-card .pin-num { display: none; }
 }
+
+/* Телефон: текст в карточке задачи показываем целиком — рамка растёт вверх по высоте текста */
+@media (max-width: 480px) {
+  .map-screen.has-card .map-card { bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); align-items: flex-end; }
+  .map-screen.has-card .map-card .map-card-main { align-items: flex-start; }
+  .map-screen.has-card .map-card .ellipsis { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+  .map-screen.has-card .map-card .map-card-text { min-width: 0; }
+  .map-screen.has-card .map-card .route-btn { align-self: flex-end; }
+}
