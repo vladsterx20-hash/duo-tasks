@@ -1,6 +1,5 @@
-import type { Period, Task, User } from '../types';
+import type { Period, Task } from '../types';
 import { fmtDue, fmtMoney, fmtSigned, periodLabel, reserveOf, RESERVE_RATE } from '../utils';
-import { CompletedList } from './CompletedList';
 import { Icon } from './Icon';
 
 const PERIODS: [Period, string][] = [
@@ -24,42 +23,91 @@ function PeriodPills({ period, onPeriod }: { period: Period; onPeriod: (p: Perio
 
 interface FundProps {
   tasks: Task[]; // завершённые за выбранный период, новые сверху
-  users: User[];
   period: Period;
   onPeriod: (p: Period) => void;
-  onOpen: (t: Task) => void;
+  onOpenProfit: () => void;
   onOpenReserve: () => void;
 }
 
-/** «Фонд компании»: прибыль с заказов и «Общий резерв» за выбранный период */
-export function FundScreen({ tasks, users, period, onPeriod, onOpen, onOpenReserve }: FundProps) {
+/** «Фонд компании»: две одинаковые карточки — «Прибыль с заказов» и «Общий резерв» за выбранный период */
+export function FundScreen({ tasks, period, onPeriod, onOpenProfit, onOpenReserve }: FundProps) {
+  const profit = tasks.reduce((s, t) => s + (t.profit ?? 0), 0);
   const reserve = tasks.reduce((s, t) => s + reserveOf(t), 0);
   return (
     <>
       <PeriodPills period={period} onPeriod={onPeriod} />
-      <CompletedList
-        tasks={tasks}
-        users={users}
-        period={period}
-        showProfit
-        onOpen={onOpen}
-        afterTotal={
-          <button className="reserve-card" onClick={onOpenReserve} aria-label={`Общий резерв: ${fmtMoney(reserve)}. Открыть подробности`}>
-            <span className="card-chev dark">
-              <Icon name="chevron" size={18} strokeWidth={2.6} />
-            </span>
-            <div className="reserve-head">
-              <Icon name="coin" size={20} />
-              <span className="reserve-label">Общий резерв</span>
-            </div>
-            <div className="reserve-sum">{fmtMoney(reserve)}</div>
-            <div className="reserve-sub">
-              {Math.round(RESERVE_RATE * 100)}% с прибыли каждого выполненного заказа {periodLabel[period]}
-            </div>
-          </button>
-        }
-      />
+      <button className="reserve-card" onClick={onOpenProfit} aria-label={`Прибыль с заказов: ${fmtMoney(profit)}. Открыть подробности`}>
+        <span className="card-chev dark">
+          <Icon name="chevron" size={18} strokeWidth={2.6} />
+        </span>
+        <div className="reserve-head">
+          <Icon name="coin" size={20} />
+          <span className="reserve-label">Прибыль с заказов</span>
+        </div>
+        <div className="reserve-sum">{fmtMoney(profit)}</div>
+        <div className="reserve-sub">Завершённых задач {periodLabel[period]}: {tasks.length}</div>
+      </button>
+      <button className="reserve-card" onClick={onOpenReserve} aria-label={`Общий резерв: ${fmtMoney(reserve)}. Открыть подробности`}>
+        <span className="card-chev dark">
+          <Icon name="chevron" size={18} strokeWidth={2.6} />
+        </span>
+        <div className="reserve-head">
+          <Icon name="coin" size={20} />
+          <span className="reserve-label">Общий резерв</span>
+        </div>
+        <div className="reserve-sum">{fmtMoney(reserve)}</div>
+        <div className="reserve-sub">
+          {Math.round(RESERVE_RATE * 100)}% с прибыли каждого выполненного заказа {periodLabel[period]}
+        </div>
+      </button>
     </>
+  );
+}
+
+interface ProfitProps {
+  tasks: Task[];
+  period: Period;
+  onPeriod: (p: Period) => void;
+  onOpen: (t: Task) => void;
+}
+
+/** Подробности прибыли: какая сумма с какого заказа */
+export function ProfitScreen({ tasks, period, onPeriod, onOpen }: ProfitProps) {
+  const total = tasks.reduce((s, t) => s + (t.profit ?? 0), 0);
+  return (
+    <div className="done-list">
+      <PeriodPills period={period} onPeriod={onPeriod} />
+      <div className="reserve-card static">
+        <div className="reserve-head">
+          <Icon name="coin" size={20} />
+          <span className="reserve-label">Прибыль с заказов</span>
+        </div>
+        <div className="reserve-sum">{fmtMoney(total)}</div>
+        <div className="reserve-sub">Завершённых задач {periodLabel[period]}: {tasks.length}</div>
+      </div>
+      {tasks.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon">📭</div>
+          <div className="empty-title">Пока ничего не завершено</div>
+          <div className="muted">Завершённые задачи {periodLabel[period]} появятся здесь</div>
+        </div>
+      ) : (
+        tasks.map((t) => {
+          const p = t.profit ?? 0;
+          return (
+            <button key={t.id} className="card profit-row" onClick={() => onOpen(t)}>
+              <span className="num on">{t.id}</span>
+              <span className="card-body">
+                <span className="card-title">{t.title}</span>
+                {t.customer && <span className="card-customer ellipsis">{t.customer}</span>}
+                <span className="card-due">Завершена: {fmtDue(t.completed_at)}</span>
+              </span>
+              <span className={'profit-amount' + (p < 0 ? ' neg' : '')}>{fmtSigned(p)}</span>
+            </button>
+          );
+        })
+      )}
+    </div>
   );
 }
 

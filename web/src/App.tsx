@@ -19,7 +19,7 @@ import { ChatConversation } from './components/ChatConversation';
 import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { CompleteSheet, type CompleteValues } from './components/CompleteSheet';
-import { FundScreen, ReserveScreen } from './components/Fund';
+import { FundScreen, ProfitScreen, ReserveScreen } from './components/Fund';
 import { Splash } from './components/Splash';
 import { About } from './components/About';
 
@@ -31,7 +31,8 @@ type Overlay =
   | { name: 'chat'; taskId: number }
   | { name: 'done' }
   | { name: 'fund' }
-  | { name: 'reserve' };
+  | { name: 'reserve' }
+  | { name: 'profit' };
 
 const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
 const SYNC_MS = 30_000;
@@ -202,7 +203,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const back = useCallback(() => {
     if (handleBack()) return; // открыт просмотрщик файла — «Назад» закрывает только его
     setOverlay((o) =>
-      o?.name === 'form' && o.taskId ? { name: 'detail', taskId: o.taskId } : o?.name === 'reserve' ? { name: 'fund' } : null
+      o?.name === 'form' && o.taskId ? { name: 'detail', taskId: o.taskId } : o?.name === 'reserve' || o?.name === 'profit' ? { name: 'fund' } : null
     );
   }, []);
   useEffect(() => {
@@ -428,13 +429,15 @@ function AppInner({ onReady }: { onReady: () => void }) {
     content = (
       <FundScreen
         tasks={doneSince(period)}
-        users={users}
         period={period}
         onPeriod={setPeriod}
-        onOpen={openTask}
+        onOpenProfit={() => setOverlay({ name: 'profit' })}
         onOpenReserve={() => setOverlay({ name: 'reserve' })}
       />
     );
+  } else if (overlay?.name === 'profit') {
+    title = 'Прибыль с заказов';
+    content = <ProfitScreen tasks={doneSince(period)} period={period} onPeriod={setPeriod} onOpen={openTask} />;
   } else if (overlay?.name === 'reserve') {
     title = 'Общий резерв';
     content = <ReserveScreen tasks={doneSince(period)} period={period} onPeriod={setPeriod} onOpen={openTask} />;
