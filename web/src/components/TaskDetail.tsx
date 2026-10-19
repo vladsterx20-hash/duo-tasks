@@ -74,7 +74,7 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
     <div className="detail">
       <section className="dcard">
         <div className="dlabel">Задача:</div>
-        <div className={'dvalue' + (task.status === 'done' ? ' struck' : '')}>{task.title}</div>
+        <div className="dvalue">{task.title}</div>
       </section>
 
       <section className="dcard">
