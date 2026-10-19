@@ -775,3 +775,28 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .bubble-file-name span { font-size: 11px; opacity: 0.7; }
 .bubble.mine .bubble-file { background: rgba(0, 0, 0, 0.14); }
 .bubble:has(.bubble-photo) { max-width: 88%; }
+
+/* =====================================================================
+   Главная: две горизонтальные кнопки (без сумм) и «Общий резерв»
+   ===================================================================== */
+.home-btns { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.home-btn { position: relative; width: 100%; min-height: 76px; padding: 0 64px 0 22px; border-radius: 26px; display: flex; align-items: center; text-align: left; animation: rise 0.4s var(--ease) both; }
+.home-btn-label { font-size: 13px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.home-btn-chev { position: absolute; top: 50%; right: 18px; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
+.home-btn.light { background: #ffffff; color: #111111; }
+.home-btn.light .home-btn-chev { background: #efefef; color: #111111; }
+.home-btn.accent { background: var(--accent); color: var(--accent-text); }
+.home-btn.accent .home-btn-chev { background: rgba(17, 17, 17, 0.14); color: inherit; }
+:root[data-theme='light'] .home-btn.light { border: 1px solid rgba(17, 17, 17, 0.08); box-shadow: var(--shadow); }
+
+.reserve-card { position: relative; display: block; width: 100%; text-align: left; margin-bottom: 14px; padding: 18px 56px 18px 20px; border-radius: 24px; background: #ffffff; color: #111111; }
+.reserve-card.static { margin-bottom: 16px; }
+.reserve-card .card-chev { top: 50%; transform: translateY(-50%); }
+.reserve-head { display: flex; align-items: center; gap: 8px; }
+.reserve-label { font-size: 12px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.reserve-sum { font-size: 30px; font-weight: 800; line-height: 1.15; margin: 8px 0 4px; word-break: break-word; }
+.reserve-sub { font-size: 12.5px; font-weight: 600; color: #4a4a4a; }
+:root[data-theme='light'] .reserve-card { border: 1px solid rgba(17, 17, 17, 0.08); box-shadow: var(--shadow); }
+
+/* В списке сделанных задач названия не зачёркиваем */
+.done-list .card.done .card-title { text-decoration: none; color: var(--text); }

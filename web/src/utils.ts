@@ -97,3 +97,8 @@ export function fileKind(a: { file_type: string; file_name: string }): FileKind 
 /** Маршрут до точки (бесплатная ссылка, без ключей) */
 export const openRoute = (lat: number, lng: number) =>
   openUrl(`https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`);
+
+/** Доля прибыли каждого выполненного заказа, которая автоматически уходит в «Общий резерв» */
+export const RESERVE_RATE = 0.2;
+export const reserveOf = (t: { profit: number | null }): number =>
+  t.profit && t.profit > 0 ? Math.round(t.profit * RESERVE_RATE * 100) / 100 : 0;

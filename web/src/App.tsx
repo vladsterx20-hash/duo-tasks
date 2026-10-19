@@ -19,6 +19,7 @@ import { ChatConversation } from './components/ChatConversation';
 import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { CompleteSheet, type CompleteValues } from './components/CompleteSheet';
+import { FundScreen, ReserveScreen } from './components/Fund';
 import { Splash } from './components/Splash';
 import { About } from './components/About';
 
@@ -29,7 +30,8 @@ type Overlay =
   | { name: 'notifications' }
   | { name: 'chat'; taskId: number }
   | { name: 'done' }
-  | { name: 'profit' };
+  | { name: 'fund' }
+  | { name: 'reserve' };
 
 const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
 const SYNC_MS = 30_000;
@@ -199,7 +201,9 @@ function AppInner({ onReady }: { onReady: () => void }) {
   // Кнопка «Назад» Telegram
   const back = useCallback(() => {
     if (handleBack()) return; // открыт просмотрщик файла — «Назад» закрывает только его
-    setOverlay((o) => (o?.name === 'form' && o.taskId ? { name: 'detail', taskId: o.taskId } : null));
+    setOverlay((o) =>
+      o?.name === 'form' && o.taskId ? { name: 'detail', taskId: o.taskId } : o?.name === 'reserve' ? { name: 'fund' } : null
+    );
   }, []);
   useEffect(() => {
     if (!inTelegram()) return;
@@ -248,8 +252,8 @@ function AppInner({ onReady }: { onReady: () => void }) {
   }
 
   // Завершённые задачи за выбранный на главной период, новые сверху
-  const doneInPeriod = () => {
-    const from = periodFrom(period);
+  const doneSince = (p: Period) => {
+    const from = periodFrom(p);
     return tasks
       .filter((t) => t.status === 'done' && t.completed_at && new Date(t.completed_at).getTime() >= from)
       .sort((a, b) => +new Date(b.completed_at!) - +new Date(a.completed_at!));
@@ -416,10 +420,25 @@ function AppInner({ onReady }: { onReady: () => void }) {
         onOpenTask={() => setOverlay({ name: 'detail', taskId: current.id })}
       />
     );
-  } else if (overlay?.name === 'done' || overlay?.name === 'profit') {
-    const profitMode = overlay.name === 'profit';
-    title = profitMode ? 'Прибыль с заказов' : 'Сделанные задачи';
-    content = <CompletedList tasks={doneInPeriod()} users={users} period={period} showProfit={profitMode} onOpen={openTask} />;
+  } else if (overlay?.name === 'done') {
+    title = 'Сделанные задачи';
+    content = <CompletedList tasks={doneSince('all')} users={users} period="all" showProfit={false} onOpen={openTask} />;
+  } else if (overlay?.name === 'fund') {
+    title = 'Фонд компании';
+    content = (
+      <FundScreen
+        tasks={doneSince(period)}
+        doneAll={doneSince('all')}
+        users={users}
+        period={period}
+        onPeriod={setPeriod}
+        onOpen={openTask}
+        onOpenReserve={() => setOverlay({ name: 'reserve' })}
+      />
+    );
+  } else if (overlay?.name === 'reserve') {
+    title = 'Общий резерв';
+    content = <ReserveScreen doneAll={doneSince('all')} onOpen={openTask} />;
   } else if (overlay?.name === 'notifications') {
     title = 'Уведомления';
     content = <NotificationsScreen items={notes.items} onOpenTask={(id) => setOverlay({ name: 'detail', taskId: id })} />;
@@ -430,13 +449,11 @@ function AppInner({ onReady }: { onReady: () => void }) {
         <Home
           tasks={tasks}
           users={users}
-          period={period}
-          onPeriod={setPeriod}
           onOpen={openTask}
           onTake={take}
           onAll={() => setTab('tasks')}
           onOpenDone={() => setOverlay({ name: 'done' })}
-          onOpenProfit={() => setOverlay({ name: 'profit' })}
+          onOpenFund={() => setOverlay({ name: 'fund' })}
           onRefresh={refresh}
         />
       );

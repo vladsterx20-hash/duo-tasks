@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Period, Task, User } from '../types';
 import { fmtDue, fmtMoney, fmtSigned, periodLabel } from '../utils';
 import { TaskCard } from './TaskCard';
@@ -9,9 +10,11 @@ interface Props {
   /** true — «Прибыль с заказов»: сколько принесла каждая задача и итог */
   showProfit: boolean;
   onOpen: (t: Task) => void;
+  /** блок под карточкой «Итого» (например, «Общий резерв») */
+  afterTotal?: ReactNode;
 }
 
-export function CompletedList({ tasks, users, period, showProfit, onOpen }: Props) {
+export function CompletedList({ tasks, users, period, showProfit, onOpen, afterTotal }: Props) {
   const total = tasks.reduce((s, t) => s + (t.profit ?? 0), 0);
 
   return (
@@ -23,6 +26,7 @@ export function CompletedList({ tasks, users, period, showProfit, onOpen }: Prop
           <div className="profit-count">Завершённых задач: {tasks.length}</div>
         </div>
       )}
+      {showProfit && afterTotal}
       {!showProfit && <div className="muted done-sub">Завершённые задачи {periodLabel[period]}: {tasks.length}</div>}
 
       {tasks.length === 0 ? (
