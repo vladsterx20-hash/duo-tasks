@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PRIORITY_WEIGHT } from '../types';
 import type { ActiveTab, Task, User } from '../types';
 import { Icon } from './Icon';
@@ -84,9 +85,13 @@ export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, on
       </PullToRefresh>
 
       {/* Кнопка «На карте» слева над меню — как в примере */}
-      <button className="float-btn left" onClick={onMap}>
-        <Icon name="map" size={18} strokeWidth={2.4} /> На карте
-      </button>
+      {/* Выносим в body, чтобы кнопка держалась за экран, а не за прокручиваемую страницу (не «прыгала» при скролле) */}
+      {createPortal(
+        <button className="float-btn left" onClick={onMap}>
+          <Icon name="map" size={18} strokeWidth={2.4} /> На карте
+        </button>,
+        document.body
+      )}
     </>
   );
 }
