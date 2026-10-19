@@ -1017,3 +1017,9 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .map-card { bottom: calc(var(--nav-h) + 8px + env(safe-area-inset-bottom)); }
 .map-screen.has-card .float-btn.left,
 .map-screen.has-card .map-loc { bottom: calc(var(--nav-h) + 8px + 78px + 14px + env(safe-area-inset-bottom)); }
+
+/* Карта: «Список» и «Где я» всегда на одной высоте — над местом карточки задачи, поэтому при выборе задачи не двигаются */
+.map-screen .float-btn.left,
+.map-screen .map-loc,
+.map-screen.has-card .float-btn.left,
+.map-screen.has-card .map-loc { bottom: calc(var(--nav-h) + 8px + 78px + 14px + env(safe-area-inset-bottom)); }
