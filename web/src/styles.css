@@ -1055,3 +1055,10 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
   .map-screen.has-card .map-card .map-card-text { min-width: 0; }
   .map-screen.has-card .map-card .route-btn { align-self: flex-end; }
 }
+
+/* «Построить маршрут» — отдельная вертикальная плашка справа в карточке задачи, скруглённая */
+.map-card .route-btn,
+.map-screen.has-card .map-card .route-btn { flex-direction: column; gap: 4px; width: 76px; min-height: 0; align-self: stretch; padding: 8px 6px; border-radius: 18px; font-size: 11px; line-height: 1.15; text-align: center; }
+.map-card .route-btn .route-label,
+.map-screen.has-card .map-card .route-btn .route-label { display: block; }
+.map-screen.has-card .map-card .pin-num { display: none; }

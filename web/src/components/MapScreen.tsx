@@ -55,13 +55,20 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
     layer.current = L.layerGroup().addTo(map);
     map.on('click', () => setSelId(null));
     map.on('dragstart', () => (autoFit.current = false));
+    // любое касание/колесо пользователя — дальше карту сами не подгоняем (иначе она «отскакивала» бы назад)
+    const stopAuto = () => (autoFit.current = false);
+    el.current!.addEventListener('pointerdown', stopAuto);
+    el.current!.addEventListener('wheel', stopAuto, { passive: true });
     // Размер контейнера может поменяться уже после создания карты (раскладка, клавиатура, поворот): пересчитываем и подгоняем заново
     const ro = new ResizeObserver(() => {
       map.invalidateSize();
       if (autoFit.current) fitAllRef.current(false);
     });
     ro.observe(el.current!);
+    const mapEl = el.current!;
     return () => {
+      mapEl.removeEventListener('pointerdown', stopAuto);
+      mapEl.removeEventListener('wheel', stopAuto);
       ro.disconnect();
       map.remove();
       mapRef.current = null;
@@ -167,6 +174,7 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
 
   function goToMe() {
     const map = mapRef.current;
+    autoFit.current = false;
     if (map && fix.current) map.setView([fix.current.lat, fix.current.lng], Math.max(map.getZoom(), 15), { animate: true });
   }
 
@@ -231,9 +239,9 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
               <b className="map-due">Выполнить до {fmtDue(selected.due_at)}</b>
             </span>
           </button>
-          <button className="route-btn" onClick={() => openRoute(selected.lat!, selected.lng!)} aria-label="Маршрут">
+          <button className="route-btn" onClick={() => openRoute(selected.lat!, selected.lng!)} aria-label="Построить маршрут">
             <Icon name="route" size={16} strokeWidth={2.4} />
-            <span className="route-label">Маршрут</span>
+            <span className="route-label">Построить маршрут</span>
           </button>
         </div>
       )}
