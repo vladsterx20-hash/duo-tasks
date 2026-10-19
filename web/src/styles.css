@@ -971,3 +971,15 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 :root[data-theme='light'] .nav-btn { color: #111111; }
 :root[data-theme='light'] .nav-btn.active { color: var(--accent-text); }
 :root[data-theme='light'] .nav-dot { border-color: #ffffff; }
+
+/* Номер задачи: одинаковый во всех темах (белый квадрат с тонким серым кантом) */
+.num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on { background: #ffffff; color: #111111; box-shadow: inset 0 0 0 1.5px rgba(17, 17, 17, 0.18); }
+
+/* Телефон: «Сделанные» и «Фонд» делят ширину, «Новая задача» — отдельной строкой, текст не обрезается */
+@media (max-width: 480px) {
+  .home-tiles { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .home-tiles .tile.dark { grid-column: 1 / -1; height: 56px; justify-content: center; }
+  .tile { padding: 0 10px 0 8px; gap: 8px; }
+  .tile-ic { width: 30px; height: 30px; }
+  .tile-label b { font-size: 13px; }
+}
