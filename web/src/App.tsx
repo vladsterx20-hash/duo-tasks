@@ -428,7 +428,6 @@ function AppInner({ onReady }: { onReady: () => void }) {
     content = (
       <FundScreen
         tasks={doneSince(period)}
-        doneAll={doneSince('all')}
         users={users}
         period={period}
         onPeriod={setPeriod}
@@ -438,7 +437,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
     );
   } else if (overlay?.name === 'reserve') {
     title = 'Общий резерв';
-    content = <ReserveScreen doneAll={doneSince('all')} onOpen={openTask} />;
+    content = <ReserveScreen tasks={doneSince(period)} period={period} onPeriod={setPeriod} onOpen={openTask} />;
   } else if (overlay?.name === 'notifications') {
     title = 'Уведомления';
     content = <NotificationsScreen items={notes.items} onOpenTask={(id) => setOverlay({ name: 'detail', taskId: id })} />;

@@ -1,5 +1,5 @@
 import type { Period, Task, User } from '../types';
-import { fmtDue, fmtMoney, fmtSigned, reserveOf, RESERVE_RATE } from '../utils';
+import { fmtDue, fmtMoney, fmtSigned, periodLabel, reserveOf, RESERVE_RATE } from '../utils';
 import { CompletedList } from './CompletedList';
 import { Icon } from './Icon';
 
@@ -9,9 +9,21 @@ const PERIODS: [Period, string][] = [
   ['all', 'Всё время'],
 ];
 
+/** Переключатель периода — такой же, как был на главной */
+function PeriodPills({ period, onPeriod }: { period: Period; onPeriod: (p: Period) => void }) {
+  return (
+    <div className="seg-pill" role="tablist" aria-label="Период">
+      {PERIODS.map(([k, label]) => (
+        <button key={k} role="tab" aria-selected={period === k} className={period === k ? 'active' : ''} onClick={() => onPeriod(k)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 interface FundProps {
   tasks: Task[]; // завершённые за выбранный период, новые сверху
-  doneAll: Task[]; // все завершённые — из них складывается резерв
   users: User[];
   period: Period;
   onPeriod: (p: Period) => void;
@@ -19,18 +31,12 @@ interface FundProps {
   onOpenReserve: () => void;
 }
 
-/** «Фонд компании»: прибыль с заказов за период и кнопка «Общий резерв» */
-export function FundScreen({ tasks, doneAll, users, period, onPeriod, onOpen, onOpenReserve }: FundProps) {
-  const reserve = doneAll.reduce((s, t) => s + reserveOf(t), 0);
+/** «Фонд компании»: прибыль с заказов и «Общий резерв» за выбранный период */
+export function FundScreen({ tasks, users, period, onPeriod, onOpen, onOpenReserve }: FundProps) {
+  const reserve = tasks.reduce((s, t) => s + reserveOf(t), 0);
   return (
     <>
-      <div className="seg-pill" role="tablist" aria-label="Период">
-        {PERIODS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={period === k} className={period === k ? 'active' : ''} onClick={() => onPeriod(k)}>
-            {label}
-          </button>
-        ))}
-      </div>
+      <PeriodPills period={period} onPeriod={onPeriod} />
       <CompletedList
         tasks={tasks}
         users={users}
@@ -47,7 +53,9 @@ export function FundScreen({ tasks, doneAll, users, period, onPeriod, onOpen, on
               <span className="reserve-label">Общий резерв</span>
             </div>
             <div className="reserve-sum">{fmtMoney(reserve)}</div>
-            <div className="reserve-sub">{Math.round(RESERVE_RATE * 100)}% с прибыли каждого выполненного заказа, за всё время</div>
+            <div className="reserve-sub">
+              {Math.round(RESERVE_RATE * 100)}% с прибыли каждого выполненного заказа {periodLabel[period]}
+            </div>
           </button>
         }
       />
@@ -55,16 +63,24 @@ export function FundScreen({ tasks, doneAll, users, period, onPeriod, onOpen, on
   );
 }
 
+interface ReserveProps {
+  tasks: Task[]; // завершённые за выбранный период
+  period: Period;
+  onPeriod: (p: Period) => void;
+  onOpen: (t: Task) => void;
+}
+
 /** Подробности резерва: с какого заказа какая сумма поступила */
-export function ReserveScreen({ doneAll, onOpen }: { doneAll: Task[]; onOpen: (t: Task) => void }) {
-  const rows = doneAll.filter((t) => reserveOf(t) > 0);
+export function ReserveScreen({ tasks, period, onPeriod, onOpen }: ReserveProps) {
+  const rows = tasks.filter((t) => reserveOf(t) > 0);
   const total = rows.reduce((s, t) => s + reserveOf(t), 0);
   return (
     <div className="done-list">
+      <PeriodPills period={period} onPeriod={onPeriod} />
       <div className="reserve-card static">
         <div className="reserve-head">
           <Icon name="coin" size={20} />
-          <span className="reserve-label">Общий резерв</span>
+          <span className="reserve-label">Общий резерв {periodLabel[period]}</span>
         </div>
         <div className="reserve-sum">{fmtMoney(total)}</div>
         <div className="reserve-sub">
@@ -75,7 +91,7 @@ export function ReserveScreen({ doneAll, onOpen }: { doneAll: Task[]; onOpen: (t
         <div className="empty">
           <div className="empty-icon">🏦</div>
           <div className="empty-title">Пока пусто</div>
-          <div className="muted">Резерв пополнится после первого выполненного заказа с прибылью</div>
+          <div className="muted">Резерв пополняется выполненными заказами с прибылью</div>
         </div>
       ) : (
         rows.map((t) => (
