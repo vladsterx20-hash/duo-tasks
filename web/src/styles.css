@@ -1068,3 +1068,11 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .map-screen.has-card .map-card .route-btn { width: 40px; padding: 10px 0; gap: 6px; border-radius: 16px; }
 .map-card .route-btn .route-label,
 .map-screen.has-card .map-card .route-btn .route-label { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; letter-spacing: 0.04em; white-space: nowrap; }
+
+/* Карточка задачи: текст сверху, снизу горизонтальная кнопка «Маршрут» на всю ширину */
+.map-card, .map-screen.has-card .map-card { flex-direction: column; align-items: stretch; gap: 10px; }
+.map-card .map-card-main, .map-screen.has-card .map-card .map-card-main { align-items: flex-start; width: 100%; }
+.map-card .route-btn,
+.map-screen.has-card .map-card .route-btn { flex-direction: row; width: 100%; align-self: stretch; min-height: 38px; padding: 0 14px; gap: 8px; border-radius: 999px; }
+.map-card .route-btn .route-label,
+.map-screen.has-card .map-card .route-btn .route-label { writing-mode: horizontal-tb; transform: none; font-size: 13px; letter-spacing: 0; }
