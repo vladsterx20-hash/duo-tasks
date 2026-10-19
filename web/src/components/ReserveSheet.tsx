@@ -43,10 +43,10 @@ export function ReserveSheet({ balance, initial, onSubmit, onClose }: Props) {
       <div className="sheet-title">Общий резерв</div>
       <div className="seg-pill wide" role="radiogroup" aria-label="Операция">
         <button role="radio" aria-checked={kind === 'add'} className={kind === 'add' ? 'active' : ''} onClick={() => setKind('add')}>
-          Добавить деньги
+          Внести
         </button>
         <button role="radio" aria-checked={kind === 'withdraw'} className={kind === 'withdraw' ? 'active' : ''} onClick={() => setKind('withdraw')}>
-          Убрать деньги
+          Изъять
         </button>
       </div>
 
@@ -81,7 +81,7 @@ export function ReserveSheet({ balance, initial, onSubmit, onClose }: Props) {
       )}
 
       <button className="primary" onClick={submit} disabled={busy}>
-        {busy ? 'Сохранение…' : kind === 'add' ? 'Добавить в резерв' : 'Списать из резерва'}
+        {busy ? 'Сохранение…' : kind === 'add' ? 'Внести в резерв' : 'Изъять из резерва'}
       </button>
       <button className="secondary cancel" onClick={onClose} disabled={busy}>
         Отмена
