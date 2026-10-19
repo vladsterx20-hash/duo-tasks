@@ -71,7 +71,8 @@ export function Home({ tasks, users, meName, onOpen, onTake, onAll, onNew, onOpe
             <Icon name="plus" size={24} strokeWidth={2.8} />
           </span>
           <span className="tile-label">
-            <b>Новая задача</b>
+            <b>Новая</b>
+            <small>задача</small>
           </span>
         </button>
       </div>
