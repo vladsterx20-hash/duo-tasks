@@ -917,3 +917,10 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .entry-sign { background: transparent; }
 .entry-sign.on { background: var(--accent); color: var(--accent-text); }
 .entry-del { align-self: flex-start; margin-top: 2px; font-size: 11px; text-decoration: underline; color: var(--hint); }
+
+/* Запись резерва вручную — выровнена так же, как строки заказов (кнопки .profit-row) */
+.entry-row { width: 100%; display: flex; align-items: center; gap: 14px; margin-bottom: 12px; text-align: left; }
+.entry-row .card-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.entry-row .num { flex: none; font-size: 22px; font-weight: 800; line-height: 1; }
+.entry-row .card-due { margin-top: 0; }
+.entry-del { padding: 0; }
