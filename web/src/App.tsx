@@ -37,6 +37,7 @@ type Overlay =
 
 const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
 const SYNC_MS = 30_000;
+const TAB_ORDER: Tab[] = ['home', 'tasks', 'chat', 'settings'];
 
 const SPLASH_MIN_MS = 3600; // анимация идёт ~2,6 с, затем логотип и лозунг держатся около секунды
 const SPLASH_MIN_REDUCED_MS = 600; // если в системе включено «уменьшить движение»
@@ -78,6 +79,15 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [notes, setNotes] = useState<{ items: AppNotification[]; unread: number }>({ items: [], unread: 0 });
   const [tab, setTab] = useState<Tab>('home');
+  // Направление последней смены раздела — для анимации «въезда» страницы
+  const [slide, setSlide] = useState<'' | 'from-right' | 'from-left'>('');
+  const goTab = useCallback((next: Tab) => {
+    setTab((cur) => {
+      const idx = (t: Tab) => TAB_ORDER.indexOf(t === 'map' ? 'tasks' : t);
+      if (idx(next) !== idx(cur)) setSlide(idx(next) > idx(cur) ? 'from-right' : 'from-left');
+      return next;
+    });
+  }, []);
   const [taskTab, setTaskTab] = useState<ActiveTab>('new');
   const [period, setPeriod] = useState<Period>('month');
   const [overlay, setOverlay] = useState<Overlay>(null);
@@ -228,7 +238,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const swipeBlocked = !!overlay || aboutOpen || !!reserveOp || !!completing || menuOpen || tab === 'map';
   useEffect(() => {
     if (swipeBlocked) return;
-    const ORDER: Tab[] = ['home', 'tasks', 'chat', 'settings'];
+    const ORDER = TAB_ORDER;
     let start: { x: number; y: number; t: number } | null = null;
     // Не перехватываем жесты внутри полей ввода и областей, которые сами прокручиваются вбок
     const ignored = (el: EventTarget | null) => {
@@ -249,14 +259,16 @@ function AppInner({ onReady }: { onReady: () => void }) {
       const p = e.changedTouches[0];
       const dx = p.clientX - start.x;
       const dy = p.clientY - start.y;
-      const fast = Date.now() - start.t < 700;
+      const dt = Math.max(Date.now() - start.t, 1);
       start = null;
-      if (!fast || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+      // Достаточно короткого быстрого «броска» или небольшого протягивания пальцем
+      const enough = Math.abs(dx) >= 40 || (Math.abs(dx) >= 22 && Math.abs(dx) / dt > 0.35);
+      if (!enough || dt > 900 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
       const i = ORDER.indexOf(tab);
       const next = ORDER[i + (dx < 0 ? 1 : -1)];
       if (next) {
         haptic();
-        setTab(next);
+        goTab(next);
         window.scrollTo(0, 0);
       }
     };
@@ -266,7 +278,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
       document.removeEventListener('touchstart', onStart);
       document.removeEventListener('touchend', onEnd);
     };
-  }, [swipeBlocked, tab]);
+  }, [swipeBlocked, tab, goTab]);
 
   async function changeStatus(t: Task, status: Status, extra?: { profit?: number; price?: number; cost?: number }) {
     const before = t;
@@ -605,8 +617,11 @@ function AppInner({ onReady }: { onReady: () => void }) {
           onLogo={tab === 'home' ? () => { haptic(); setAboutOpen(true); } : undefined}
         />
       )}
-      <main className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '')}>{content}</main>
-      {showNav && <BottomNav tab={tab} onChange={setTab} chatUnread={chatUnread} />}
+      <main
+        key={overlay ? 'overlay' : tab}
+        className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '') + (!overlay && slide ? ' slide-' + slide : '')}
+      >{content}</main>
+      {showNav && <BottomNav tab={tab} onChange={goTab} chatUnread={chatUnread} />}
       {menuOpen && overlay?.name === 'detail' && current && <ActionMenu items={taskMenu(current)} onClose={() => setMenuOpen(false)} />}
       {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
       {reserveOp && <ReserveSheet balance={balance} initial={reserveOp} onSubmit={reserveOperation} onClose={() => setReserveOp(null)} />}

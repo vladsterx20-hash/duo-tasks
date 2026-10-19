@@ -983,3 +983,10 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
   .tile-ic { width: 30px; height: 30px; }
   .tile-label b { font-size: 13px; }
 }
+
+/* Смена раздела: страница быстро «въезжает» со стороны, куда листали */
+@keyframes slideFromRight { from { transform: translateX(36px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slideFromLeft { from { transform: translateX(-36px); opacity: 0; } to { transform: none; opacity: 1; } }
+.screen.slide-from-right { animation: slideFromRight 0.2s var(--ease) both; }
+.screen.slide-from-left { animation: slideFromLeft 0.2s var(--ease) both; }
+@media (prefers-reduced-motion: reduce) { .screen.slide-from-right, .screen.slide-from-left { animation: none; } }
