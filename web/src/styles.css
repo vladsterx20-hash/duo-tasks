@@ -806,3 +806,9 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .home-btn { aspect-ratio: 1 / 1; min-height: 0; padding: 18px; border-radius: 28px; align-items: flex-end; }
 .home-btn-label { font-size: 14px; line-height: 1.3; max-width: 100%; }
 .home-btn-chev { top: 14px; right: 14px; transform: none; width: 34px; height: 34px; }
+
+/* Главная: плитки поменьше */
+.home-btns { grid-template-columns: repeat(2, minmax(0, 150px)); justify-content: start; gap: 12px; }
+.home-btn { padding: 14px; border-radius: 24px; }
+.home-btn-label { font-size: 11.5px; }
+.home-btn-chev { top: 10px; right: 10px; width: 28px; height: 28px; }
