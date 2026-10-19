@@ -939,3 +939,11 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .status-dot.new { background: #2ecc71; box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.25), 0 0 10px rgba(46, 204, 113, 0.8); }
 .status-dot.in_progress { background: #ffc800; box-shadow: 0 0 0 3px rgba(255, 200, 0, 0.25), 0 0 10px rgba(255, 200, 0, 0.8); }
 .status-dot.done { background: #ff3b30; box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.25), 0 0 10px rgba(255, 59, 48, 0.8); }
+
+/* Статус — только огонёк в углу, без свечения и чуть правее от края */
+.status-dot { top: 11px; left: 13px; }
+.status-dot.new, .status-dot.in_progress, .status-dot.done { box-shadow: none; }
+
+/* Номер задачи: всегда одинаковая заливка цветом темы (как у сделанных задач), квадрат со скруглёнными углами */
+.num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 14px; }
+.pin-num { border-radius: 10px; }
