@@ -110,7 +110,7 @@ interface ReserveProps {
   meId: number;
   balance: number;
   onOpen: (t: Task) => void;
-  onOperation: (kind: 'add' | 'withdraw') => void;
+  onOperation: () => void;
   onDeleteEntry: (id: number) => void;
 }
 
@@ -128,6 +128,9 @@ export function ReserveScreen({ doneAll, entries, users, meId, balance, onOpen, 
   return (
     <div className="done-list">
       <div className="reserve-card static big">
+        <button className="reserve-edit" onClick={onOperation}>
+          Изменить баланс
+        </button>
         <div className="reserve-head">
           <span className="reserve-label">Общий резерв</span>
         </div>
@@ -135,15 +138,6 @@ export function ReserveScreen({ doneAll, entries, users, meId, balance, onOpen, 
         <div className="reserve-sub">
           {Math.round(RESERVE_RATE * 100)}% прибыли списывается автоматически, когда задача выполнена
         </div>
-      </div>
-
-      <div className="reserve-actions">
-        <button className="primary small" onClick={() => onOperation('add')}>
-          Добавить деньги
-        </button>
-        <button className="secondary small" onClick={() => onOperation('withdraw')}>
-          Убрать деньги
-        </button>
       </div>
 
       {rows.length === 0 ? (

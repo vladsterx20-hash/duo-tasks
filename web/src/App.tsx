@@ -8,7 +8,7 @@ import { haptic, inTelegram, openRoute, periodFrom, reserveBalance } from './uti
 import { CompletedList } from './components/CompletedList';
 import { ActionMenu, type MenuItem } from './components/ActionMenu';
 import { BottomNav, type Tab } from './components/BottomNav';
-import { AddButton, BellButton, MoreButton, ReservePlus, TopBar } from './components/TopBar';
+import { AddButton, BellButton, MoreButton, TopBar } from './components/TopBar';
 import { Home } from './components/Home';
 import { TasksScreen } from './components/TasksScreen';
 import { TaskForm } from './components/TaskForm';
@@ -447,7 +447,6 @@ function AppInner({ onReady }: { onReady: () => void }) {
     content = <CompletedList tasks={doneSince('all')} users={users} period="all" showProfit={false} onOpen={openTask} />;
   } else if (overlay?.name === 'fund') {
     title = 'Фонд компании';
-    right = <ReservePlus onClick={() => setReserveOp('add')} />;
     content = (
       <FundScreen
         doneAll={doneSince('all')}
@@ -461,7 +460,6 @@ function AppInner({ onReady }: { onReady: () => void }) {
     content = <ProfitScreen tasks={doneSince(period)} period={period} onPeriod={setPeriod} onOpen={openTask} />;
   } else if (overlay?.name === 'reserve') {
     title = 'Общий резерв';
-    right = <ReservePlus onClick={() => setReserveOp('add')} />;
     content = (
       <ReserveScreen
         doneAll={doneSince('all')}
@@ -470,7 +468,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         meId={me.id}
         balance={balance}
         onOpen={openTask}
-        onOperation={setReserveOp}
+        onOperation={() => setReserveOp('add')}
         onDeleteEntry={deleteReserveEntry}
       />
     );
