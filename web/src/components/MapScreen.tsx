@@ -231,8 +231,9 @@ export function MapScreen({ tasks, tab: view, onTab: setView, onList, onOpen }: 
               <b className="map-due">Выполнить до {fmtDue(selected.due_at)}</b>
             </span>
           </button>
-          <button className="route-btn" onClick={() => openRoute(selected.lat!, selected.lng!)}>
-            Маршрут
+          <button className="route-btn" onClick={() => openRoute(selected.lat!, selected.lng!)} aria-label="Маршрут">
+            <Icon name="route" size={16} strokeWidth={2.4} />
+            <span className="route-label">Маршрут</span>
           </button>
         </div>
       )}
