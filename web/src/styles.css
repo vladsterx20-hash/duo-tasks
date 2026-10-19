@@ -947,3 +947,8 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 /* Номер задачи: всегда одинаковая заливка цветом темы (как у сделанных задач), квадрат со скруглёнными углами */
 .num, .num.on, .num.work, .num.entry-sign, .num.entry-sign.on { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 14px; }
 .pin-num { border-radius: 10px; }
+
+/* Подсветка огонька вернулась, но компактная: чуть выходит за кружок */
+.status-dot.new { box-shadow: 0 0 5px 1px rgba(46, 204, 113, 0.75); }
+.status-dot.in_progress { box-shadow: 0 0 5px 1px rgba(255, 200, 0, 0.75); }
+.status-dot.done { box-shadow: 0 0 5px 1px rgba(255, 59, 48, 0.75); }
