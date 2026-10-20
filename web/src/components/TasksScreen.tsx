@@ -24,19 +24,19 @@ interface Props {
 }
 
 export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, onMap, onRefresh }: Props) {
-  const [who, setWho] = useState<'all' | 'me' | 'partner'>('all');
-  const [onlyHigh, setOnlyHigh] = useState(false);
+  // Один фильтр за раз: Все / Мои / Партнёр / Важные
+  const [filter, setFilter] = useState<'all' | 'me' | 'partner' | 'high'>('all');
   const partner = users.find((u) => u.id !== meId);
 
   const filtered = useMemo(
     () =>
       tasks.filter((t) => {
-        if (onlyHigh && t.priority !== 'high') return false;
-        if (who === 'me') return t.assignee_id === null || t.assignee_id === meId;
-        if (who === 'partner') return t.assignee_id === null || t.assignee_id !== meId;
+        if (filter === 'high') return t.priority === 'high';
+        if (filter === 'me') return t.assignee_id === null || t.assignee_id === meId;
+        if (filter === 'partner') return t.assignee_id === null || t.assignee_id !== meId;
         return true;
       }),
-    [tasks, who, onlyHigh, meId]
+    [tasks, filter, meId]
   );
 
   const visible = useMemo(() => {
@@ -46,7 +46,7 @@ export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, on
   }, [filtered, tab]);
 
   const count = (s: ActiveTab) => filtered.filter((t) => t.status === s).length;
-  const filterActive = who !== 'all' || onlyHigh;
+  const filterActive = filter !== 'all';
 
   return (
     <>
@@ -61,14 +61,11 @@ export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, on
         </div>
 
         <div className="filters">
-          {([['all', 'Все'], ['me', 'Мои'], ['partner', partner?.first_name ?? 'Партнёр']] as const).map(([k, label]) => (
-            <button key={k} className={'fchip' + (who === k ? ' active' : '')} onClick={() => setWho(k)}>
+          {([['all', 'Все'], ['me', 'Мои'], ['partner', partner?.first_name ?? 'Партнёр'], ['high', 'Важные']] as const).map(([k, label]) => (
+            <button key={k} className={'fchip' + (filter === k ? ' active' : '')} onClick={() => setFilter(k)} aria-pressed={filter === k}>
               {label}
             </button>
           ))}
-          <button className={'fchip' + (onlyHigh ? ' active' : '')} onClick={() => setOnlyHigh(!onlyHigh)}>
-            Важные
-          </button>
         </div>
 
         {visible.length === 0 ? (
