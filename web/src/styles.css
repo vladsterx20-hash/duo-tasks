@@ -1090,3 +1090,8 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 
 /* Огонёк из картинки flame_white.png — вписан в квадрат номера */
 .num.num-fire .flame-img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 4px; pointer-events: none; user-select: none; }
+
+/* Важная задача: огонёк полностью заменяет квадрат — крупнее него, окрашен в цвет темы, номер внутри огонька */
+.num.num-fire { position: relative; width: 56px; height: 62px; margin: -8px -5px -8px -5px; background: transparent; box-shadow: none; border-radius: 0; color: var(--accent-text); overflow: visible; }
+.num.num-fire .flame-shape { position: absolute; inset: 0; background: var(--accent); -webkit-mask: url('/flame_white.png') center / contain no-repeat; mask: url('/flame_white.png') center / contain no-repeat; }
+.num.num-fire .num-text { position: relative; z-index: 1; font-size: 15px; font-weight: 800; padding-top: 14px; }
