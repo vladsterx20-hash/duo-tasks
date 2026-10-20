@@ -1087,3 +1087,6 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 /* Важная задача: огонёк занимает весь квадрат вместо номера (тот же размер 46×46) */
 .num.num-fire { color: #ffffff; }
 .num.num-fire svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.4)); }
+
+/* Огонёк из картинки flame_white.png — вписан в квадрат номера */
+.num.num-fire .flame-img { width: 100%; height: 100%; object-fit: contain; display: block; padding: 4px; pointer-events: none; user-select: none; }

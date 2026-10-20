@@ -34,7 +34,7 @@ export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Pr
           aria-label={`Задача номер ${task.id}${important ? ', важная' : ''}`}
           title={important ? 'Важная задача' : undefined}
         >
-          {important ? <Icon name="flame" size={28} /> : task.id}
+          {important ? <img className="flame-img" src="/flame_white.png" alt="" draggable={false} /> : task.id}
         </span>
         <div className="card-body">
           <div className="card-title">{task.title}</div>
