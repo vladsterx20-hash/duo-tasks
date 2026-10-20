@@ -1095,3 +1095,7 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .num.num-fire { position: relative; width: 56px; height: 62px; margin: -8px -5px -8px -5px; background: transparent; box-shadow: none; border-radius: 0; color: var(--accent-text); overflow: visible; }
 .num.num-fire .flame-shape { position: absolute; inset: 0; background: var(--accent); -webkit-mask: url('/flame_white.png') center / contain no-repeat; mask: url('/flame_white.png') center / contain no-repeat; }
 .num.num-fire .num-text { position: relative; z-index: 1; font-size: 15px; font-weight: 800; padding-top: 14px; }
+
+/* Огонёк шире: растянут по горизонтали, цвет — как у квадратов (цвет темы) */
+.num.num-fire { width: 70px; height: 62px; margin: -8px -12px -8px -12px; }
+.num.num-fire .flame-shape { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; background: var(--accent); }
