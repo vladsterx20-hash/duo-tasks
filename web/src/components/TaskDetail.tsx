@@ -91,7 +91,6 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
           {fmtDue(task.due_at)}
         </Row>
         <Row icon="flag" label="Приоритет">
-          {task.priority === 'high' ? '🔥 ' : ''}
           {PRIORITY_LABEL[task.priority]}
         </Row>
         {task.customer && (

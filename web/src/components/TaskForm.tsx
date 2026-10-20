@@ -195,7 +195,6 @@ export function TaskForm({ task, me, partner, onSaved }: Props) {
       <div className="seg-pill small">
         {(['low', 'normal', 'high'] as Priority[]).map((p) => (
           <button key={p} type="button" className={priority === p ? 'active' : ''} onClick={() => setPriority(p)}>
-            {p === 'high' ? '🔥 ' : ''}
             {PRIORITY_LABEL[p]}
           </button>
         ))}
