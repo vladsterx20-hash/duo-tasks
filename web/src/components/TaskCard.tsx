@@ -16,6 +16,7 @@ interface Props {
 
 export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Props) {
   const done = task.status === 'done';
+  const important = task.priority === 'high' && !done;
 
   return (
     <div
@@ -27,15 +28,13 @@ export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Pr
     >
       {statusDot && <span className={'status-dot ' + task.status} title={statusLabel[task.status]} aria-label={statusLabel[task.status]} />}
       <div className="card-main">
-        <span className="num-wrap">
-          <span className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '')} aria-label={`Задача номер ${task.id}`}>
-            {task.id}
-          </span>
-          {task.priority === 'high' && (
-            <span className="fire" role="img" aria-label="Важная задача">
-              <Icon name="flame" size={13} />
-            </span>
-          )}
+        {/* Важная задача: вместо номера в квадрате — огонёк */}
+        <span
+          className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '') + (important ? ' num-fire' : '')}
+          aria-label={`Задача номер ${task.id}${important ? ', важная' : ''}`}
+          title={important ? 'Важная задача' : undefined}
+        >
+          {important ? <Icon name="flame" size={28} /> : task.id}
         </span>
         <div className="card-body">
           <div className="card-title">{task.title}</div>

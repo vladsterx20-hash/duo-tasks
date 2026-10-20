@@ -1083,3 +1083,7 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 
 /* Огонёк важной задачи: белое пламя на тёмной подложке у угла номера */
 .num-wrap .fire { left: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #111111; color: #ffffff; font-size: 0; filter: none; box-shadow: 0 0 0 2px var(--card); }
+
+/* Важная задача: огонёк занимает весь квадрат вместо номера (тот же размер 46×46) */
+.num.num-fire { color: #ffffff; }
+.num.num-fire svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.4)); }
