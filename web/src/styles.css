@@ -1076,3 +1076,10 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 .map-screen.has-card .map-card .route-btn { flex-direction: row; width: 100%; align-self: stretch; min-height: 38px; padding: 0 14px; gap: 8px; border-radius: 999px; }
 .map-card .route-btn .route-label,
 .map-screen.has-card .map-card .route-btn .route-label { writing-mode: horizontal-tb; transform: none; font-size: 13px; letter-spacing: 0; }
+
+/* Важная задача: огонёк слева у номера (на углу квадрата) */
+.num-wrap { position: relative; flex: none; display: inline-flex; }
+.num-wrap .fire { position: absolute; left: -7px; bottom: -7px; z-index: 2; font-size: 17px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
+
+/* Огонёк важной задачи: белое пламя на тёмной подложке у угла номера */
+.num-wrap .fire { left: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #111111; color: #ffffff; font-size: 0; filter: none; box-shadow: 0 0 0 2px var(--card); }

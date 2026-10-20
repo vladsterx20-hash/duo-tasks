@@ -27,8 +27,15 @@ export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Pr
     >
       {statusDot && <span className={'status-dot ' + task.status} title={statusLabel[task.status]} aria-label={statusLabel[task.status]} />}
       <div className="card-main">
-        <span className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '')} aria-label={`Задача номер ${task.id}`}>
-          {task.id}
+        <span className="num-wrap">
+          <span className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '')} aria-label={`Задача номер ${task.id}`}>
+            {task.id}
+          </span>
+          {task.priority === 'high' && (
+            <span className="fire" role="img" aria-label="Важная задача">
+              <Icon name="flame" size={13} />
+            </span>
+          )}
         </span>
         <div className="card-body">
           <div className="card-title">{task.title}</div>
@@ -36,7 +43,6 @@ export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Pr
           <div className="card-due">
             <Icon name="clock" size={14} />
             <span className="due">{fmtDue(task.due_at)}</span>
-            {task.priority === 'high' && <span aria-label="Высокий приоритет">🔥</span>}
           </div>
         </div>
         <AvatarStack users={assigneesOf(task, users)} size={34} />

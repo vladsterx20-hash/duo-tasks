@@ -67,7 +67,7 @@ export function TasksScreen({ tasks, users, meId, tab, onTab, onOpen, onTake, on
             </button>
           ))}
           <button className={'fchip' + (onlyHigh ? ' active' : '')} onClick={() => setOnlyHigh(!onlyHigh)}>
-            🔥 Важные
+            Важные
           </button>
         </div>
 

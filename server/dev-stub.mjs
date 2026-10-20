@@ -31,7 +31,7 @@ const tasks = [
   mk({ title: 'Установка кондиционера', customer: 'ООО «Север»', status: 'new', due_at: iso(-1), price: 45000, cost: 28000, address: 'Москва, Тверская 1', lat: 55.7575, lng: 37.6156 }),
   mk({ title: 'Доставка оборудования', customer: 'ООО «Нева»', status: 'new', due_at: iso(-3), price: 9000, cost: 6000, address: 'Санкт-Петербург, Невский 20', lat: 59.9343, lng: 30.3351 }),
   mk({ title: 'Монтаж в Твери', customer: 'ИП Орлов', status: 'new', due_at: iso(-4), price: 15000, cost: 7000, address: 'Тверь, ул. Советская 5', lat: 56.8587, lng: 35.9176 }),
-  mk({ title: 'Ремонт проводки', customer: 'Иванов', status: 'in_progress', taken_by: ME, due_at: iso(-2), price: 12000, cost: 4000, address: 'Москва, Арбат 10', lat: 55.752, lng: 37.592 }),
+  mk({ title: 'Ремонт проводки', customer: 'Иванов', priority: 'high', status: 'in_progress', taken_by: ME, due_at: iso(-2), price: 12000, cost: 4000, address: 'Москва, Арбат 10', lat: 55.752, lng: 37.592 }),
   mk({ title: 'Монтаж камер', customer: 'ИП Петров', status: 'done', completed_at: iso(2), price: 30000, cost: 18000, profit: 12000 }),
   mk({ title: 'Настройка сети офиса', customer: 'ООО «Альфа»', status: 'done', completed_at: iso(10), price: 20000, cost: 5000, profit: 15000 }),
   mk({ title: 'Замена розеток', customer: 'Сидорова', status: 'done', completed_at: iso(40), price: 8000, cost: 3000, profit: 5000 }),
