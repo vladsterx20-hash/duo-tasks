@@ -3,15 +3,21 @@
   "configurations": [
     {
       "name": "start",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
-      "port": 3000
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/dev-stub.mjs"],
+      "port": 3100
     },
     {
       "name": "local-demo",
       "runtimeExecutable": "node",
       "runtimeArgs": ["server/dev-stub.mjs"],
       "port": 3100
+    },
+    {
+      "name": "real-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start"],
+      "port": 3000
     }
   ]
 }
