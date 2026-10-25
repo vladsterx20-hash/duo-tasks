@@ -45,8 +45,10 @@ const SELECT = `
   select t.id, t.title, t.description, t.due_at, t.status, t.priority, t.author_id, t.assignee_id,
          t.created_at, t.completed_at, t.price, t.cost, t.profit, t.address, t.lat, t.lng, t.customer, t.taken_by,
          coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
-                   order by a.id) from attachments a where a.task_id = t.id and a.comment_id is null), '[]'::json) as attachments,
-         coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at)
+                   order by a.id) from attachments a where a.task_id = t.id), '[]'::json) as attachments,
+         coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at,
+                   'attachments', coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
+                                            order by a.id) from attachments a where a.comment_id = c.id), '[]'::json))
                    order by c.id) from comments c where c.task_id = t.id and c.kind = 'comment'), '[]'::json) as comments,
          coalesce((select json_agg(json_build_object('id',c.id,'author_id',c.author_id,'text',c.text,'created_at',c.created_at,
                    'attachments', coalesce((select json_agg(json_build_object('id',a.id,'file_name',a.file_name,'file_type',a.file_type,'size',a.size)
@@ -61,6 +63,7 @@ async function fetchTasks(id) {
   return rows.map((t) => ({
     ...t,
     attachments: t.attachments.map(withUrl),
+    comments: t.comments.map((m) => ({ ...m, attachments: m.attachments.map(withUrl) })),
     chat: t.chat.map((m) => ({ ...m, attachments: m.attachments.map(withUrl) })),
   }));
 }
@@ -480,6 +483,33 @@ api.post(
     const partner = partnerOf(req.user.id);
     record(partner, 'chat', id, `${req.user.first_name} · чат «${task.title}»: ${text}`);
     notifyChat(partner, req.user.first_name, task, text);
+  })
+);
+
+// Файл из панели комментария: появляется и в «Файлах» задачи, и в ленте комментариев как сообщение
+api.post(
+  '/tasks/:id/comment-files',
+  upload.array('files', 10),
+  wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    const [exists] = await fetchTasks(id);
+    if (!exists) return res.status(404).json({ error: 'Задача не найдена' });
+    if (!req.files?.length) return res.status(400).json({ error: 'Файл не выбран' });
+    const text = String(req.body.text || '').trim().slice(0, 2000);
+    await tx(async (c) => {
+      const { rows } = await c.query(
+        "insert into comments (task_id, author_id, text, kind) values ($1,$2,$3,'comment') returning id",
+        [id, req.user.id, text]
+      );
+      await saveFiles(c, id, req.files, rows[0].id);
+    });
+    const [task] = await fetchTasks(id);
+    res.json(task);
+    const partner = partnerOf(req.user.id);
+    const names = req.files.map((f) => fixName(f.originalname));
+    const summary = (text ? text + ' ' : '') + (names.length > 1 ? `📎 файлов: ${names.length}` : `📎 ${names[0]}`);
+    record(partner, 'comment', id, `${req.user.first_name} · «${task.title}»: ${summary}`);
+    notifyComment(partner, req.user.first_name, task, summary);
   })
 );
 

@@ -284,11 +284,13 @@ function AppInner({ onReady }: { onReady: () => void }) {
     }
   }
 
-  async function uploadFiles(t: Task, files: File[]) {
+  // Файл из панели комментария: сохраняется в «Файлах» задачи и появляется в комментариях как сообщение (с подписью, если она была)
+  async function uploadFiles(t: Task, files: File[], text = '') {
     const fd = new FormData();
     files.forEach((f) => fd.append('files', f));
+    if (text) fd.append('text', text);
     try {
-      upsert(await api.addFiles(t.id, fd));
+      upsert(await api.addCommentFiles(t.id, fd));
       haptic('success');
     } catch (e) {
       showError(e);
@@ -393,7 +395,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         meId={me.id}
         onComment={(text) => addComment(current, text)}
         onDeleteComment={(cid) => deleteComment(current, cid)}
-        onUpload={(files) => uploadFiles(current, files)}
+        onUpload={(files, text) => uploadFiles(current, files, text)}
       />
     );
   } else if (overlay?.name === 'done') {
@@ -524,7 +526,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const showNav = !overlay;
 
   return (
-    <div className={'app' + (fullBleed && !overlay ? ' bleed' : '')}>
+    <div className={'app' + (fullBleed && !overlay ? ' bleed' : '') + (overlay?.name === 'detail' ? ' detail-open' : '')}>
       {!(fullBleed && !overlay) && (
         <TopBar
           title={title}
@@ -539,6 +541,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         key={overlay ? 'overlay' : tab}
         className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '') + (!overlay && slide ? ' slide-' + slide : '')}
       >{content}</main>
+      <div id="dock-slot" className="dock-slot" />
       {showNav && <BottomNav tab={tab} onChange={goTab} />}
       {quickId !== null && tasks.some((x) => x.id === quickId) && (
         <ActionMenu items={taskMenu(tasks.find((x) => x.id === quickId)!)} onClose={() => setQuickId(null)} />

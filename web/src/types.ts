@@ -29,7 +29,7 @@ export interface Comment {
   author_id: number;
   text: string;
   created_at: string;
-  /** файлы, отправленные в чат этим сообщением */
+  /** файлы, отправленные вместе с этим сообщением (они же в «Файлах» задачи) */
   attachments?: Attachment[];
 }
 

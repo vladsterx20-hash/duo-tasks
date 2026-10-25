@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PRIORITY_LABEL } from '../types';
-import type { Task, User } from '../types';
+import type { Attachment, Task, User } from '../types';
 import { assigneesOf, fileKind, fmtDue, fmtMoney, fmtSize, isOverdue, openFile, statusLabel } from '../utils';
 import { FileViewer } from './FileViewer';
 import { AvatarStack } from './Avatar';
@@ -13,7 +14,7 @@ interface Props {
   meId: number;
   onComment: (text: string) => Promise<void>;
   onDeleteComment: (id: number) => void;
-  onUpload: (files: File[]) => Promise<void>;
+  onUpload: (files: File[], text?: string) => Promise<void>;
 }
 
 const MAX_FILE = 20 * 1024 * 1024;
@@ -32,21 +33,18 @@ function Row({ icon, label, children, alert }: { icon: IconName; label: string; 
 export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUpload }: Props) {
   const [text, setText] = useState('');
 
-  // На телефоне клавиатура перекрывает низ экрана: поднимаем панель комментария над ней
+  // На телефоне клавиатура сжимает видимую область: подгоняем высоту приложения под неё, панель комментария остаётся над клавиатурой
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const set = () => {
-      const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      document.documentElement.style.setProperty('--kb', covered + 'px');
-    };
+    const set = () => document.documentElement.style.setProperty('--vvh', `${vv.height}px`);
     set();
     vv.addEventListener('resize', set);
     vv.addEventListener('scroll', set);
     return () => {
       vv.removeEventListener('resize', set);
       vv.removeEventListener('scroll', set);
-      document.documentElement.style.removeProperty('--kb');
+      document.documentElement.style.removeProperty('--vvh');
     };
   }, []);
   const [sending, setSending] = useState(false);
@@ -55,6 +53,14 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
   const executors = assigneesOf(task, users);
   const viewable = task.attachments.filter((a) => fileKind(a) !== 'other');
   const [viewIdx, setViewIdx] = useState<number | null>(null);
+  const [dockSlot, setDockSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setDockSlot(document.getElementById('dock-slot')), []);
+
+  function openAttachment(a: Attachment) {
+    const i = viewable.findIndex((v) => v.id === a.id);
+    if (i >= 0) setViewIdx(i);
+    else openFile(a.file_url);
+  }
 
   // Скрепка рядом с комментарием: фото и файлы прикрепляются к задаче
   async function pick(list: FileList | null) {
@@ -65,7 +71,8 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
     setUploadError('');
     setUploading(true);
     try {
-      await onUpload(files);
+      await onUpload(files, text.trim());
+      setText(''); // подпись ушла вместе с файлом
     } catch {
       /* ошибка показана в App */
     } finally {
@@ -165,7 +172,22 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
             return (
               <div key={c.id} className={'bubble' + (mine ? ' mine' : '')}>
                 {!mine && <div className="bubble-name">{u?.first_name}</div>}
-                <div className="bubble-text">{c.text}</div>
+                {c.attachments?.map((f) =>
+                  f.file_type.startsWith('image/') ? (
+                    <button key={f.id} className="bubble-photo" onClick={() => openAttachment(f)} aria-label={`Фото ${f.file_name}`}>
+                      <img src={f.file_url} alt={f.file_name} />
+                    </button>
+                  ) : (
+                    <button key={f.id} className="bubble-file" onClick={() => openAttachment(f)}>
+                      <span className="file-icon">📄</span>
+                      <span className="bubble-file-name">
+                        <b className="ellipsis">{f.file_name}</b>
+                        <span>{fmtSize(f.size)}</span>
+                      </span>
+                    </button>
+                  )
+                )}
+                {c.text && <div className="bubble-text">{c.text}</div>}
                 <div className="bubble-time">
                   {fmtDue(c.created_at)}
                   {mine && (
@@ -183,7 +205,9 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
       </section>
 
       {/* У завершённой задачи поля ввода (скрепка, комментарий, отправка) не показываем */}
-      {task.status !== 'done' && (
+      {task.status !== 'done' &&
+        dockSlot &&
+        createPortal(
       <div className="comment-dock">
       <div className="comment-dock-in">
         <label className={'round-btn dark' + (uploading ? ' busy' : '')} aria-label="Прикрепить фото или файл">
@@ -204,7 +228,8 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
           <Icon name="send" size={18} strokeWidth={3} />
         </button>
       </div>
-      </div>
+      </div>,
+        dockSlot
       )}
 
       {viewIdx !== null && viewable[viewIdx] && (

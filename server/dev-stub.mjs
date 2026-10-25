@@ -97,6 +97,13 @@ api.post('/tasks/:id/files', upload.array('files'), (q, r) => {
   t.attachments.push(...storeFiles(q.files));
   r.json(view(t));
 });
+api.post('/tasks/:id/comment-files', upload.array('files'), (q, r) => {
+  const t = find(q);
+  const att = storeFiles(q.files);
+  t.attachments.push(...att);
+  t.comments.push({ id: nextComment++, author_id: ME, text: String(q.body.text || ''), created_at: new Date().toISOString(), attachments: att });
+  r.json(view(t));
+});
 api.post('/tasks/:id/chat-files', upload.array('files'), (q, r) => {
   const t = find(q);
   t.chat.push({ id: nextComment++, author_id: ME, text: '', created_at: new Date().toISOString(), attachments: storeFiles(q.files) });
