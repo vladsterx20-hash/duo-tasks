@@ -47,13 +47,33 @@ export function applyTheme(theme: Theme) {
   } catch {
     /* ignore */
   }
+  paintChrome(theme);
+  // Telegram на телефоне иногда игнорирует цвет шапки, заданный в первый момент запуска: повторяем, когда окно уже раскрыто
+  setTimeout(() => paintChrome(theme), 400);
+  setTimeout(() => paintChrome(theme), 1800);
+}
+
+/** Цвет шапки Telegram (там же кружки «закрыть» и «⋯»), фона и нижней полосы — под нашу тему */
+function paintChrome(theme: Theme) {
+  const color = theme === 'dark' ? '#111111' : '#f2f2f5';
   try {
-    const color = theme === 'dark' ? '#111111' : '#f2f2f5';
     WebApp.setHeaderColor(color);
     WebApp.setBackgroundColor(color);
   } catch {
     /* вне Telegram */
   }
+  try {
+    WebApp.setBottomBarColor(color);
+  } catch {
+    /* старые версии Telegram */
+  }
+}
+
+// Если пользователь сменил тему самого Telegram, возвращаем цвета шапки под тему приложения
+try {
+  WebApp.onEvent('themeChanged', () => paintChrome((document.documentElement.dataset.theme as Theme) || 'dark'));
+} catch {
+  /* вне Telegram */
 }
 
 export function applyAccent(accent: Accent) {
