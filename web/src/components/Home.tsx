@@ -8,6 +8,8 @@ interface Props {
   tasks: Task[];
   users: User[];
   meName: string;
+  /** id закреплённых задач (порядок — новые закрепы сверху) */
+  pins: number[];
   onOpen: (t: Task) => void;
   onTake: (t: Task) => void;
   onAll: () => void;
@@ -27,13 +29,23 @@ function greeting(): string {
   return 'Добрый вечер';
 }
 
-export function Home({ tasks, users, meName, onOpen, onTake, onAll, onNew, onOpenDone, onOpenFund, onRefresh }: Props) {
+export function Home({ tasks, users, meName, pins, onOpen, onTake, onAll, onNew, onOpenDone, onOpenFund, onRefresh }: Props) {
   const active = useMemo(() => tasks.filter((t) => t.status !== 'done'), [tasks]);
 
+  // Закреплённые — в порядке закрепления; завершённые из закрепа выпадают сами
+  const pinned = useMemo(
+    () => pins.map((id) => active.find((t) => t.id === id)).filter((t): t is Task => !!t),
+    [pins, active]
+  );
+
+  // «Ближайшие» — все остальные активные, закреплённые выше не дублируем
   const upcoming = useMemo(() => {
     const due = (t: Task) => (t.due_at ? new Date(t.due_at).getTime() : Infinity);
-    return [...active].sort((a, b) => due(a) - due(b)).slice(0, 5);
-  }, [active]);
+    return active
+      .filter((t) => !pins.includes(t.id))
+      .sort((a, b) => due(a) - due(b))
+      .slice(0, 5);
+  }, [active, pins]);
 
   const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -76,6 +88,17 @@ export function Home({ tasks, users, meName, onOpen, onTake, onAll, onNew, onOpe
           </span>
         </button>
       </div>
+
+      {pinned.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2 className="caps">Закреплённые</h2>
+          </div>
+          {pinned.map((t) => (
+            <TaskCard key={t.id} task={t} users={users} compact statusDot pinned onOpen={() => onOpen(t)} onTake={() => onTake(t)} />
+          ))}
+        </>
+      )}
 
       <div className="section-head">
         <h2 className="caps">Ближайшие задачи</h2>

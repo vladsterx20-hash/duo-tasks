@@ -148,6 +148,13 @@ api.delete('/reserve/:id', (q, r) => {
   if (i >= 0) reserveEntries.splice(i, 1);
   r.json(reserveEntries);
 });
+let pins = [];
+api.get('/pins', (_q, r) => r.json(pins));
+api.post('/tasks/:id/pin', (q, r) => {
+  const id = Number(q.params.id);
+  pins = q.body.pinned === false ? pins.filter((x) => x !== id) : [id, ...pins.filter((x) => x !== id)];
+  r.json(pins);
+});
 api.get('/notifications', (_q, r) => r.json({ items: [], unread: 0 }));
 api.post('/notifications/read', (_q, r) => r.json({ ok: true }));
 api.get('/notify-status', (_q, r) => r.json({ ok: true, bot: 'demo_bot' }));

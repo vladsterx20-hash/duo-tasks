@@ -522,6 +522,29 @@ api.delete(
   })
 );
 
+// ---------- закреплённые задачи (у каждого свои) ----------
+const myPins = async (userId) => {
+  const { rows } = await pool.query('select task_id from task_pins where user_id=$1 order by created_at desc', [userId]);
+  return rows.map((x) => x.task_id);
+};
+
+api.get(
+  '/pins',
+  wrap(async (req, res) => res.json(await myPins(req.user.id)))
+);
+
+api.post(
+  '/tasks/:id/pin',
+  wrap(async (req, res) => {
+    const id = Number(req.params.id);
+    const [exists] = await fetchTasks(id);
+    if (!exists) return res.status(404).json({ error: 'Задача не найдена' });
+    if (req.body.pinned === false) await pool.query('delete from task_pins where user_id=$1 and task_id=$2', [req.user.id, id]);
+    else await pool.query('insert into task_pins (user_id, task_id) values ($1,$2) on conflict do nothing', [req.user.id, id]);
+    res.json(await myPins(req.user.id));
+  })
+);
+
 // ---------- общий резерв: ручное пополнение и расход ----------
 const RESERVE_RATE = 0.2;
 

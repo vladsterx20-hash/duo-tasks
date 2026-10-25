@@ -93,6 +93,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [completing, setCompleting] = useState<Task | null>(null);
   const [reserve, setReserve] = useState<ReserveEntry[]>([]);
+  const [pins, setPins] = useState<number[]>([]); // закреплённые на главной задачи (у каждого свои)
   const [reserveOp, setReserveOp] = useState<null | 'add' | 'withdraw'>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -177,7 +178,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const load = useCallback(
     async (first = false) => {
       try {
-        const [m, list, n, res] = await Promise.all([first ? api.me() : null, api.tasks(), api.notifications(), api.reserve()]);
+        const [m, list, n, res, pn] = await Promise.all([first ? api.me() : null, api.tasks(), api.notifications(), api.reserve(), api.pins()]);
         if (m) {
           setMe(m.me);
           setUsers(m.users);
@@ -188,6 +189,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         setTasks(list);
         setNotes(n);
         setReserve(res);
+        setPins(pn);
         setState('ready');
       } catch (e) {
         if (e instanceof ApiError && (e.status === 403 || e.status === 401)) setState('denied');
@@ -539,6 +541,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
           tasks={tasks}
           users={users}
           meName={DISPLAY_NAMES[me.id] ?? me.first_name}
+          pins={pins}
           onOpen={openTask}
           onTake={take}
           onAll={() => setTab('tasks')}
@@ -583,8 +586,26 @@ function AppInner({ onReady }: { onReady: () => void }) {
   }
 
   // Меню действий: маршрут → статус → изменить → удалить
+  async function togglePin(t: Task) {
+    const pinned = !pins.includes(t.id);
+    setPins((cur) => (pinned ? [t.id, ...cur] : cur.filter((x) => x !== t.id))); // сразу, без ожидания сервера
+    haptic();
+    try {
+      setPins(await api.setPin(t.id, pinned));
+    } catch (e) {
+      setPins((cur) => (pinned ? cur.filter((x) => x !== t.id) : [t.id, ...cur]));
+      showError(e);
+    }
+  }
+
   function taskMenu(t: Task): MenuItem[] {
     const items: MenuItem[] = [];
+    if (t.status !== 'done')
+      items.push({
+        label: pins.includes(t.id) ? 'Открепить с главной' : 'Закрепить на главной',
+        icon: 'pin',
+        onClick: () => togglePin(t),
+      });
     if (t.lat !== null && t.lng !== null) items.push({ label: 'Маршрут', icon: 'route', onClick: () => openRoute(t.lat!, t.lng!) });
     if (t.status === 'new') items.push({ label: 'Взять в работу', icon: 'play', onClick: () => take(t) });
     if (t.status === 'in_progress') {

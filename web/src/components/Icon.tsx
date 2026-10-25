@@ -30,7 +30,8 @@ export type IconName =
   | 'undo'
   | 'play'
   | 'wallet'
-  | 'flame';
+  | 'flame'
+  | 'pin';
 
 const PATHS: Record<IconName, JSX.Element> = {
   home: (
@@ -184,6 +185,12 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   play: <polygon points="6 4 20 12 6 20 6 4" />,
   flame: <path d="M12 2c.6 3.2-1.2 4.6-2.8 6.4C7.6 10.2 6 12 6 14.8A6 6 0 0 0 18 15c0-2.2-1-3.8-2.2-5 .1 1.4-.4 2.4-1.3 3 .5-3.4-.7-7.4-2.5-11zM12 21a3 3 0 0 1-3-3c0-1.6 1.2-2.4 2.2-3.4.3 1 1.4 1.4 1.8 2.4.3.7.1 1.5-.2 2A3 3 0 0 1 12 21z" fill="currentColor" stroke="none" />,
+  pin: (
+    <>
+      <path d="M12 17v5" />
+      <path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6z" />
+    </>
+  ),
   wallet: (
     <>
       <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />

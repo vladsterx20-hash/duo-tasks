@@ -12,9 +12,11 @@ interface Props {
   compact?: boolean;
   /** огонёк статуса в углу карточки — только на главной */
   statusDot?: boolean;
+  /** задача закреплена на главной — значок кнопки в углу */
+  pinned?: boolean;
 }
 
-export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Props) {
+export function TaskCard({ task, users, onOpen, onTake, compact, statusDot, pinned }: Props) {
   const done = task.status === 'done';
   const important = task.priority === 'high' && !done;
 
@@ -27,6 +29,11 @@ export function TaskCard({ task, users, onOpen, onTake, compact, statusDot }: Pr
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
     >
       {statusDot && <span className={'status-dot ' + task.status} title={statusLabel[task.status]} aria-label={statusLabel[task.status]} />}
+      {pinned && (
+        <span className="pin-mark" role="img" aria-label="Закреплена">
+          <Icon name="pin" size={13} />
+        </span>
+      )}
       <div className="card-main">
         {/* Важная задача: вместо номера в квадрате — огонёк */}
         <span
