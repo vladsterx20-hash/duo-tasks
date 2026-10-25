@@ -40,7 +40,6 @@ const FLAGS: { key: Flag; title: string }[] = [
   { key: 'n_taken', title: 'Задача взята в работу' },
   { key: 'n_done', title: 'Задача выполнена' },
   { key: 'n_comment', title: 'Комментарий к задаче' },
-  { key: 'n_chat', title: 'Сообщение в чате' },
   { key: 'n_remind', title: 'Напоминание о сроке' },
 ];
 

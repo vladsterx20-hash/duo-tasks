@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 
+const MAX_H = 150; // дальше — прокрутка внутри поля
+
 interface Props {
   value: string;
   onChange: (v: string) => void;
@@ -14,7 +16,10 @@ export function GrowInput({ value, onChange, placeholder, maxLength }: Props) {
     const el = ref.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    const border = el.offsetHeight - el.clientHeight; // рамка: scrollHeight её не включает
+    const full = el.scrollHeight + border;
+    el.style.height = Math.min(full, MAX_H) + 'px';
+    el.style.overflowY = full > MAX_H ? 'auto' : 'hidden';
   }, [value]);
   return (
     <textarea

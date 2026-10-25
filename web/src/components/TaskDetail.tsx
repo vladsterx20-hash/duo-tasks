@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PRIORITY_LABEL } from '../types';
 import type { Task, User } from '../types';
 import { assigneesOf, fileKind, fmtDue, fmtMoney, fmtSize, isOverdue, openFile, statusLabel } from '../utils';
@@ -31,6 +31,24 @@ function Row({ icon, label, children, alert }: { icon: IconName; label: string; 
 /** Действия с задачей (маршрут, статус, изменить, удалить) — в меню «⋯» справа вверху */
 export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUpload }: Props) {
   const [text, setText] = useState('');
+
+  // На телефоне клавиатура перекрывает низ экрана: поднимаем панель комментария над ней
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const set = () => {
+      const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb', covered + 'px');
+    };
+    set();
+    vv.addEventListener('resize', set);
+    vv.addEventListener('scroll', set);
+    return () => {
+      vv.removeEventListener('resize', set);
+      vv.removeEventListener('scroll', set);
+      document.documentElement.style.removeProperty('--kb');
+    };
+  }, []);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -166,7 +184,8 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
 
       {/* У завершённой задачи поля ввода (скрепка, комментарий, отправка) не показываем */}
       {task.status !== 'done' && (
-      <div className="cbar">
+      <div className="comment-dock">
+      <div className="comment-dock-in">
         <label className={'round-btn dark' + (uploading ? ' busy' : '')} aria-label="Прикрепить фото или файл">
           <Icon name="clip" size={20} />
           <input
@@ -184,6 +203,7 @@ export function TaskDetail({ task, users, meId, onComment, onDeleteComment, onUp
         <button className="round-btn orange" onClick={send} disabled={!text.trim() || sending} aria-label="Отправить">
           <Icon name="send" size={18} strokeWidth={3} />
         </button>
+      </div>
       </div>
       )}
 

@@ -148,6 +148,12 @@ api.delete('/reserve/:id', (q, r) => {
   if (i >= 0) reserveEntries.splice(i, 1);
   r.json(reserveEntries);
 });
+let homeOrder = { pinned: [], upcoming: [] };
+api.get('/home-order', (_q, r) => r.json(homeOrder));
+api.put('/home-order', (q, r) => {
+  if (q.body.section === 'pinned' || q.body.section === 'upcoming') homeOrder[q.body.section] = (q.body.ids || []).map(Number);
+  r.json(homeOrder);
+});
 let pins = [];
 api.get('/pins', (_q, r) => r.json(pins));
 api.post('/tasks/:id/pin', (q, r) => {

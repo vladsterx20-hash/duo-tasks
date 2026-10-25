@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import type { Task, User } from '../types';
+import type { HomeOrder, Task, User } from '../types';
 import { Icon } from './Icon';
 import { PullToRefresh } from './PullToRefresh';
+import { SortableList } from './Sortable';
 import { TaskCard } from './TaskCard';
 
 interface Props {
@@ -10,6 +11,11 @@ interface Props {
   meName: string;
   /** id закреплённых задач (порядок — новые закрепы сверху) */
   pins: number[];
+  /** свой порядок карточек в «Закреплённых» и «Ближайших» */
+  order: HomeOrder;
+  onReorder: (section: keyof HomeOrder, ids: number[]) => void;
+  /** нажатие на номер задачи — быстрое меню действий */
+  onNumber: (t: Task) => void;
   onOpen: (t: Task) => void;
   onTake: (t: Task) => void;
   onAll: () => void;
@@ -29,23 +35,35 @@ function greeting(): string {
   return 'Добрый вечер';
 }
 
-export function Home({ tasks, users, meName, pins, onOpen, onTake, onAll, onNew, onOpenDone, onOpenFund, onRefresh }: Props) {
+export function Home({ tasks, users, meName, pins, order, onReorder, onNumber, onOpen, onTake, onAll, onNew, onOpenDone, onOpenFund, onRefresh }: Props) {
   const active = useMemo(() => tasks.filter((t) => t.status !== 'done'), [tasks]);
 
   // Закреплённые — в порядке закрепления; завершённые из закрепа выпадают сами
+  // Свой порядок: сохранённые идут как поставил пользователь, новые (без сохранённого места) — сверху
+  const byOrder = (list: Task[], saved: number[]) =>
+    [...list].sort((a, b) => {
+      const pa = saved.indexOf(a.id);
+      const pb = saved.indexOf(b.id);
+      if (pa < 0 && pb < 0) return 0;
+      if (pa < 0) return -1;
+      if (pb < 0) return 1;
+      return pa - pb;
+    });
+
   const pinned = useMemo(
-    () => pins.map((id) => active.find((t) => t.id === id)).filter((t): t is Task => !!t),
-    [pins, active]
+    () => byOrder(pins.map((id) => active.find((t) => t.id === id)).filter((t): t is Task => !!t), order.pinned),
+    [pins, active, order.pinned]
   );
 
   // «Ближайшие» — все остальные активные, закреплённые выше не дублируем
   const upcoming = useMemo(() => {
     const due = (t: Task) => (t.due_at ? new Date(t.due_at).getTime() : Infinity);
-    return active
+    const five = active
       .filter((t) => !pins.includes(t.id))
       .sort((a, b) => due(a) - due(b))
       .slice(0, 5);
-  }, [active, pins]);
+    return byOrder(five, order.upcoming);
+  }, [active, pins, order.upcoming]);
 
   const today = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -94,9 +112,23 @@ export function Home({ tasks, users, meName, pins, onOpen, onTake, onAll, onNew,
           <div className="section-head">
             <h2 className="caps">Закреплённые</h2>
           </div>
-          {pinned.map((t) => (
-            <TaskCard key={t.id} task={t} users={users} compact statusDot pinned onOpen={() => onOpen(t)} onTake={() => onTake(t)} />
-          ))}
+          <SortableList
+            items={pinned}
+            getId={(t) => t.id}
+            onReorder={(ids) => onReorder('pinned', ids)}
+            render={(t) => (
+              <TaskCard
+                task={t}
+                users={users}
+                compact
+                statusDot
+                pinned
+                onNumber={() => onNumber(t)}
+                onOpen={() => onOpen(t)}
+                onTake={() => onTake(t)}
+              />
+            )}
+          />
         </>
       )}
 
@@ -112,9 +144,14 @@ export function Home({ tasks, users, meName, pins, onOpen, onTake, onAll, onNew,
           <div className="muted">Добавьте новую кнопкой выше</div>
         </div>
       ) : (
-        upcoming.map((t) => (
-          <TaskCard key={t.id} task={t} users={users} compact statusDot onOpen={() => onOpen(t)} onTake={() => onTake(t)} />
-        ))
+        <SortableList
+          items={upcoming}
+          getId={(t) => t.id}
+          onReorder={(ids) => onReorder('upcoming', ids)}
+          render={(t) => (
+            <TaskCard task={t} users={users} compact statusDot onNumber={() => onNumber(t)} onOpen={() => onOpen(t)} onTake={() => onTake(t)} />
+          )}
+        />
       )}
     </PullToRefresh>
   );

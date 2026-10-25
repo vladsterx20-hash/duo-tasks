@@ -1102,3 +1102,17 @@ button.chat-row { width: 100%; display: flex; align-items: center; gap: 14px; te
 
 /* Закреплённая задача: значок кнопки в правом верхнем углу карточки */
 .pin-mark { position: absolute; top: 9px; right: 12px; color: var(--hint); display: inline-flex; transform: rotate(35deg); pointer-events: none; }
+
+/* Перетаскивание карточек на главной: зажать и тянуть */
+.sortable-item { position: relative; transition: transform 0.18s var(--ease); -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.sortable-item.dragging { z-index: 20; }
+.sortable-item.dragging .card { box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); }
+button.num { border: 0; padding: 0; font: inherit; cursor: pointer; }
+
+/* Панель комментария: на всю ширину экрана, прижата к низу; поле растёт вверх по мере набора, текст не «ездит» */
+.comment-dock { position: fixed; z-index: 95; left: 0; right: 0; bottom: var(--kb, 0px); padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: var(--page); border-top: 1px solid var(--line); }
+.comment-dock-in { display: flex; align-items: flex-end; gap: 8px; width: 100%; max-width: 640px; margin: 0 auto; }
+.comment-dock .round-btn { flex: none; width: 44px; height: 44px; }
+.comment-dock .grow-input { flex: 1; min-width: 0; width: auto; min-height: 44px; max-height: 150px; padding: 10px 16px; line-height: 22px; border-radius: 22px; resize: none; box-sizing: border-box; overflow-y: hidden; }
+/* чтобы последние комментарии не прятались под панелью */
+.detail { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }

@@ -545,6 +545,35 @@ api.post(
   })
 );
 
+// ---------- порядок задач на главной (у каждого свой) ----------
+const myOrder = async (userId) => {
+  const { rows } = await pool.query('select section, ids from home_order where user_id=$1', [userId]);
+  const out = { pinned: [], upcoming: [] };
+  for (const x of rows) out[x.section] = x.ids;
+  return out;
+};
+
+api.get(
+  '/home-order',
+  wrap(async (req, res) => res.json(await myOrder(req.user.id)))
+);
+
+api.put(
+  '/home-order',
+  wrap(async (req, res) => {
+    const section = req.body.section;
+    if (section !== 'pinned' && section !== 'upcoming') return res.status(400).json({ error: 'Неверный раздел' });
+    const raw = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter((n) => Number.isInteger(n) && n > 0) : [];
+    const ids = [...new Set(raw)].slice(0, 100);
+    await pool.query(
+      `insert into home_order (user_id, section, ids) values ($1,$2,$3)
+       on conflict (user_id, section) do update set ids = excluded.ids`,
+      [req.user.id, section, ids]
+    );
+    res.json(await myOrder(req.user.id));
+  })
+);
+
 // ---------- общий резерв: ручное пополнение и расход ----------
 const RESERVE_RATE = 0.2;
 

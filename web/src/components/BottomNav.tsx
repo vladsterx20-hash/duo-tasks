@@ -1,17 +1,16 @@
 import { haptic } from '../utils';
 import { Icon, type IconName } from './Icon';
 
-export type Tab = 'home' | 'tasks' | 'map' | 'chat' | 'settings';
+export type Tab = 'home' | 'tasks' | 'map' | 'settings';
 
 const ITEMS: { tab: Tab; icon: IconName; label: string }[] = [
   { tab: 'home', icon: 'home', label: 'Главная' },
   { tab: 'tasks', icon: 'tasks', label: 'Задачи' },
-  { tab: 'chat', icon: 'chat', label: 'Чат' },
   { tab: 'settings', icon: 'sun', label: 'Настройки' },
 ];
 
 /** Карта открывается кнопкой «На карте» в задачах, поэтому, пока она открыта, подсвечиваем «Задачи» */
-export function BottomNav({ tab, onChange, chatUnread = 0 }: { tab: Tab; onChange: (t: Tab) => void; chatUnread?: number }) {
+export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   const active: Tab = tab === 'map' ? 'tasks' : tab;
   return (
     <nav className="nav" aria-label="Основное меню">
@@ -27,7 +26,6 @@ export function BottomNav({ tab, onChange, chatUnread = 0 }: { tab: Tab; onChang
           }}
         >
           <Icon name={i.icon} size={20} />
-          {i.tab === 'chat' && chatUnread > 0 && <span className="nav-dot" aria-label={`Непрочитанных сообщений: ${chatUnread}`} />}
           {active === i.tab && <span>{i.label}</span>}
         </button>
       ))}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
 import { api, ApiError } from './api';
-import type { ActiveTab, AppNotification, Period, ReserveEntry, Settings, Status, Task, User } from './types';
+import type { ActiveTab, AppNotification, Period, HomeOrder, ReserveEntry, Settings, Status, Task, User } from './types';
 import { applyAccent, applyTheme } from './theme';
 import { handleBack } from './backStack';
 import { DISPLAY_NAMES, haptic, inTelegram, openRoute, periodFrom, reserveBalance } from './utils';
@@ -14,8 +14,6 @@ import { TasksScreen } from './components/TasksScreen';
 import { TaskForm } from './components/TaskForm';
 import { TaskDetail } from './components/TaskDetail';
 import { MapScreen } from './components/MapScreen';
-import { ChatList } from './components/ChatList';
-import { ChatConversation } from './components/ChatConversation';
 import { SettingsScreen } from './components/SettingsScreen';
 import { NotificationsScreen } from './components/NotificationsScreen';
 import { CompleteSheet, type CompleteValues } from './components/CompleteSheet';
@@ -29,15 +27,14 @@ type Overlay =
   | { name: 'form'; taskId?: number }
   | { name: 'detail'; taskId: number }
   | { name: 'notifications' }
-  | { name: 'chat'; taskId: number }
   | { name: 'done' }
   | { name: 'fund' }
   | { name: 'reserve' }
   | { name: 'profit' };
 
-const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', chat: 'Чат', settings: 'Настройки' };
+const TITLES: Record<Tab, string> = { home: 'Главная', tasks: 'Задачи', map: '', settings: 'Настройки' };
 const SYNC_MS = 30_000;
-const TAB_ORDER: Tab[] = ['home', 'tasks', 'chat', 'settings'];
+const TAB_ORDER: Tab[] = ['home', 'tasks', 'settings'];
 
 const SPLASH_MIN_MS = 3600; // анимация идёт ~2,6 с, затем логотип и лозунг держатся около секунды
 const SPLASH_MIN_REDUCED_MS = 600; // если в системе включено «уменьшить движение»
@@ -93,36 +90,12 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [completing, setCompleting] = useState<Task | null>(null);
   const [reserve, setReserve] = useState<ReserveEntry[]>([]);
+  const [homeOrder, setHomeOrder] = useState<HomeOrder>({ pinned: [], upcoming: [] });
+  const [quickId, setQuickId] = useState<number | null>(null); // задача, для которой открыто быстрое меню (по номеру)
   const [pins, setPins] = useState<number[]>([]); // закреплённые на главной задачи (у каждого свои)
   const [reserveOp, setReserveOp] = useState<null | 'add' | 'withdraw'>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  // Какие сообщения в чатах уже прочитаны (последний прочитанный комментарий по задаче) — хранится на этом устройстве
-  const [seen, setSeen] = useState<Record<number, number>>(() => {
-    try {
-      const raw = localStorage.getItem('chatSeen');
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  });
-  const baselineDone = useRef<boolean>(
-    (() => {
-      try {
-        return localStorage.getItem('chatSeen') !== null;
-      } catch {
-        return true;
-      }
-    })()
-  );
-  const saveSeen = (m: Record<number, number>) => {
-    setSeen(m);
-    try {
-      localStorage.setItem('chatSeen', JSON.stringify(m));
-    } catch {
-      /* ignore */
-    }
-  };
   const [state, setState] = useState<'loading' | 'ready' | 'denied' | 'error'>('loading');
   const [toast, setToast] = useState('');
 
@@ -130,45 +103,6 @@ function AppInner({ onReady }: { onReady: () => void }) {
   useEffect(() => {
     if (state !== 'loading') onReady();
   }, [state, onReady]);
-
-  // Самый первый запуск на устройстве: уже существующие сообщения считаем прочитанными
-  useEffect(() => {
-    if (state !== 'ready' || baselineDone.current) return;
-    baselineDone.current = true;
-    const m: Record<number, number> = {};
-    tasks.forEach((t) => {
-      const l = t.chat[t.chat.length - 1];
-      if (l) m[t.id] = l.id;
-    });
-    saveSeen(m);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, tasks]);
-
-  // Если базу очистили и нумерация пошла заново, старые отметки «прочитано» могут оказаться больше номеров
-  // новых сообщений и скрыть их как прочитанные — подрезаем такие отметки
-  useEffect(() => {
-    if (state !== 'ready') return;
-    let changed = false;
-    const m = { ...seen };
-    for (const t of tasks) {
-      const last = t.chat[t.chat.length - 1]?.id ?? 0;
-      if ((m[t.id] ?? 0) > last) {
-        m[t.id] = last;
-        changed = true;
-      }
-    }
-    if (changed) saveSeen(m);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, tasks]);
-
-  // Пока открыт чат задачи, всё, что в нём есть и приходит, считается прочитанным
-  useEffect(() => {
-    if (overlay?.name !== 'chat') return;
-    const t = tasks.find((x) => x.id === overlay.taskId);
-    const l = t?.chat[t.chat.length - 1];
-    if (t && l && (seen[t.id] ?? 0) < l.id) saveSeen({ ...seen, [t.id]: l.id });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlay, tasks, seen]);
 
   const showError = useCallback((e: unknown) => {
     setToast((e as Error).message || 'Ошибка');
@@ -178,7 +112,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const load = useCallback(
     async (first = false) => {
       try {
-        const [m, list, n, res, pn] = await Promise.all([first ? api.me() : null, api.tasks(), api.notifications(), api.reserve(), api.pins()]);
+        const [m, list, n, res, pn, ho] = await Promise.all([first ? api.me() : null, api.tasks(), api.notifications(), api.reserve(), api.pins(), api.homeOrder()]);
         if (m) {
           setMe(m.me);
           setUsers(m.users);
@@ -190,6 +124,7 @@ function AppInner({ onReady }: { onReady: () => void }) {
         setNotes(n);
         setReserve(res);
         setPins(pn);
+        setHomeOrder(ho);
         setState('ready');
       } catch (e) {
         if (e instanceof ApiError && (e.status === 403 || e.status === 401)) setState('denied');
@@ -371,30 +306,6 @@ function AppInner({ onReady }: { onReady: () => void }) {
     }
   }
 
-  // Файлы из чата становятся сообщением чата (а не вложением задачи)
-  async function sendChatFiles(t: Task, files: File[]) {
-    const fd = new FormData();
-    files.forEach((f) => fd.append('files', f));
-    try {
-      upsert(await api.addChatFiles(t.id, fd));
-      haptic('success');
-    } catch (e) {
-      showError(e);
-      throw e;
-    }
-  }
-
-  // Сообщение в чате задачи — отдельный поток, не комментарий в карточке
-  async function sendChat(t: Task, text: string) {
-    try {
-      upsert(await api.addChatMessage(t.id, text));
-      haptic();
-    } catch (e) {
-      showError(e);
-      throw e;
-    }
-  }
-
   async function deleteComment(t: Task, cid: number) {
     try {
       upsert(await api.deleteComment(t.id, cid));
@@ -447,8 +358,6 @@ function AppInner({ onReady }: { onReady: () => void }) {
     );
 
   const partner = users.find((u) => u.id !== me.id);
-  const unreadOf = (t: Task) => t.chat.filter((c) => c.author_id !== me.id && c.id > (seen[t.id] ?? 0)).length;
-  const chatUnread = tasks.reduce((s, t) => s + (t.status === 'done' ? 0 : unreadOf(t)), 0);
   const current = overlay && 'taskId' in overlay && overlay.taskId ? tasks.find((t) => t.id === overlay.taskId) : undefined;
   const refresh = () => load();
 
@@ -485,19 +394,6 @@ function AppInner({ onReady }: { onReady: () => void }) {
         onComment={(text) => addComment(current, text)}
         onDeleteComment={(cid) => deleteComment(current, cid)}
         onUpload={(files) => uploadFiles(current, files)}
-      />
-    );
-  } else if (overlay?.name === 'chat' && current) {
-    title = 'Чат к задаче'; // одинаково для каждой задачи; номер виден в карточке ниже
-    content = (
-      <ChatConversation
-        key={current.id}
-        task={current}
-        users={users}
-        meId={me.id}
-        onSend={(text) => sendChat(current, text)}
-        onUpload={(files) => sendChatFiles(current, files)}
-        onOpenTask={() => setOverlay({ name: 'detail', taskId: current.id })}
       />
     );
   } else if (overlay?.name === 'done') {
@@ -542,6 +438,9 @@ function AppInner({ onReady }: { onReady: () => void }) {
           users={users}
           meName={DISPLAY_NAMES[me.id] ?? me.first_name}
           pins={pins}
+          order={homeOrder}
+          onReorder={reorderHome}
+          onNumber={(t) => setQuickId(t.id)}
           onOpen={openTask}
           onTake={take}
           onAll={() => setTab('tasks')}
@@ -569,23 +468,21 @@ function AppInner({ onReady }: { onReady: () => void }) {
     } else if (tab === 'map') {
       fullBleed = true;
       content = <MapScreen tasks={tasks} tab={taskTab} onTab={setTaskTab} onList={() => setTab('tasks')} onOpen={openTask} />;
-    } else if (tab === 'chat') {
-      content = (
-        <ChatList
-          tasks={tasks}
-          users={users}
-          meId={me.id}
-          unread={unreadOf}
-          onOpen={(t) => setOverlay({ name: 'chat', taskId: t.id })}
-          onRefresh={refresh}
-        />
-      );
     } else {
       content = <SettingsScreen settings={settings} onChange={setSettings} onError={showError} />;
     }
   }
 
   // Меню действий: маршрут → статус → изменить → удалить
+  async function reorderHome(section: keyof HomeOrder, ids: number[]) {
+    setHomeOrder((cur) => ({ ...cur, [section]: ids })); // сразу на экране, сервер догоняет
+    try {
+      setHomeOrder(await api.setHomeOrder(section, ids));
+    } catch (e) {
+      showError(e);
+    }
+  }
+
   async function togglePin(t: Task) {
     const pinned = !pins.includes(t.id);
     setPins((cur) => (pinned ? [t.id, ...cur] : cur.filter((x) => x !== t.id))); // сразу, без ожидания сервера
@@ -627,14 +524,14 @@ function AppInner({ onReady }: { onReady: () => void }) {
   const showNav = !overlay;
 
   return (
-    <div className={'app' + (fullBleed && !overlay ? ' bleed' : '') + (overlay?.name === 'chat' ? ' chat-open' : '')}>
+    <div className={'app' + (fullBleed && !overlay ? ' bleed' : '')}>
       {!(fullBleed && !overlay) && (
         <TopBar
           title={title}
           onBack={overlay ? back : undefined}
           right={right}
           stacked={!!overlay}
-          logo={!overlay && (tab === 'home' || tab === 'tasks' || tab === 'chat' || tab === 'settings')}
+          logo={!overlay && (tab === 'home' || tab === 'tasks' || tab === 'settings')}
           onLogo={tab === 'home' ? () => { haptic(); setAboutOpen(true); } : undefined}
         />
       )}
@@ -642,7 +539,10 @@ function AppInner({ onReady }: { onReady: () => void }) {
         key={overlay ? 'overlay' : tab}
         className={'screen' + (fullBleed && !overlay ? ' screen-bleed' : '') + (overlay ? ' screen-overlay' : '') + (!overlay && slide ? ' slide-' + slide : '')}
       >{content}</main>
-      {showNav && <BottomNav tab={tab} onChange={goTab} chatUnread={chatUnread} />}
+      {showNav && <BottomNav tab={tab} onChange={goTab} />}
+      {quickId !== null && tasks.some((x) => x.id === quickId) && (
+        <ActionMenu items={taskMenu(tasks.find((x) => x.id === quickId)!)} onClose={() => setQuickId(null)} />
+      )}
       {menuOpen && overlay?.name === 'detail' && current && <ActionMenu items={taskMenu(current)} onClose={() => setMenuOpen(false)} />}
       {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
       {reserveOp && <ReserveSheet balance={balance} initial={reserveOp} onSubmit={reserveOperation} onClose={() => setReserveOp(null)} />}

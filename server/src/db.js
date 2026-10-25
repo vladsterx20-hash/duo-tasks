@@ -99,6 +99,13 @@ export async function initDb() {
       created_at timestamptz not null default now(),
       primary key (user_id, task_id)
     );
+    -- Свой порядок задач на главной: раздел 'pinned' или 'upcoming', список id по порядку
+    create table if not exists home_order (
+      user_id bigint not null references users(id),
+      section text not null check (section in ('pinned','upcoming')),
+      ids int[] not null default '{}',
+      primary key (user_id, section)
+    );
     create table if not exists reminders_sent (
       task_id int not null references tasks(id) on delete cascade,
       user_id bigint not null references users(id),

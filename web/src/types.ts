@@ -98,3 +98,9 @@ export interface ReserveEntry {
   author_id: number;
   created_at: string;
 }
+
+/** Свой порядок задач на главной (id по порядку) */
+export interface HomeOrder {
+  pinned: number[];
+  upcoming: number[];
+}

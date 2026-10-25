@@ -14,9 +14,11 @@ interface Props {
   statusDot?: boolean;
   /** задача закреплена на главной — значок кнопки в углу */
   pinned?: boolean;
+  /** нажатие на номер: быстрое меню действий (если не задано — номер просто метка) */
+  onNumber?: () => void;
 }
 
-export function TaskCard({ task, users, onOpen, onTake, compact, statusDot, pinned }: Props) {
+export function TaskCard({ task, users, onOpen, onTake, compact, statusDot, pinned, onNumber }: Props) {
   const done = task.status === 'done';
   const important = task.priority === 'high' && !done;
 
@@ -36,14 +38,33 @@ export function TaskCard({ task, users, onOpen, onTake, compact, statusDot, pinn
       )}
       <div className="card-main">
         {/* Важная задача: вместо номера в квадрате — огонёк */}
-        <span
-          className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '') + (important ? ' num-fire' : '')}
-          aria-label={`Задача номер ${task.id}${important ? ', важная' : ''}`}
-          title={important ? 'Важная задача' : undefined}
-        >
-          {important && <span className="flame-shape" aria-hidden="true" />}
-          <span className="num-text">{task.id}</span>
-        </span>
+        {onNumber ? (
+          <button
+            type="button"
+            data-nodrag
+            className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '') + (important ? ' num-fire' : '')}
+            aria-label={`Быстрые действия: задача номер ${task.id}`}
+            aria-haspopup="menu"
+            title={important ? 'Важная задача' : 'Быстрые действия'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onNumber();
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            {important && <span className="flame-shape" aria-hidden="true" />}
+            <span className="num-text">{task.id}</span>
+          </button>
+        ) : (
+          <span
+            className={'num' + (done ? ' on' : '') + (task.status === 'in_progress' ? ' work' : '') + (important ? ' num-fire' : '')}
+            aria-label={`Задача номер ${task.id}${important ? ', важная' : ''}`}
+            title={important ? 'Важная задача' : undefined}
+          >
+            {important && <span className="flame-shape" aria-hidden="true" />}
+            <span className="num-text">{task.id}</span>
+          </span>
+        )}
         <div className="card-body">
           <div className="card-title">{task.title}</div>
           {task.customer && <div className="card-customer ellipsis">{task.customer}</div>}
